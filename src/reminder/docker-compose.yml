@@ -1,0 +1,19 @@
+services:
+  reminder:
+    image: reminder
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+#    environment:
+#      MATTERMOST_URL: MATTERMOST_URL
+#      headers: headers
+#      headers_oko: headers_oko
+#      host: host
+#      database: database
+#      user: user
+#      password: password
+#      charset: charset
+#      webhook_host_url: webhook_host_url
+#      webhook_host_port: webhook_host_port
+#    ports:
+#      - 3000:3000

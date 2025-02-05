@@ -1,0 +1,9 @@
+services:
+  botMattermost:
+    image: bot_mattermost
+    build: './src/botMattermost'
+    ports:
+      - 8579:8579
+  reminder:
+    image: reminder
+    build: './src/reminder'
