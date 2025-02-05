@@ -24,7 +24,7 @@ class webhookPlugin(Plugin):
         else:
             self.driver.create_post(
                 event.body["channel_id"],
-                f"@{event.body.get('user_name')} у тебя нету прав нажимать {event.context.get('text')}"
+                f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
     @listen_webhook("cancel")
@@ -53,5 +53,5 @@ class webhookPlugin(Plugin):
         else:
             self.driver.create_post(
                 event.body["channel_id"],
-                f"@{event.body.get('user_name')} у тебя нету прав нажимать {event.context.get('text')}"
+                f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
