@@ -403,7 +403,9 @@ def test():
                                            "hooks/underApproval",
                                     "context": dict(
                                         text=":memo: На согласовании",
-                                        message=remind_message)
+                                        message=remind_message,
+                                        manager_nickname=manager_nickname,
+                                    )
                                 },
                             },
                             {
@@ -414,7 +416,9 @@ def test():
                                            "hooks/couldNotGetInTouch",
                                     "context": dict(
                                         text=":shrug: Не удалось связаться",
-                                        message=remind_message)
+                                        message=remind_message,
+                                        manager_nickname=manager_nickname,
+                                    )
                                 },
                             },
                             {
@@ -426,7 +430,9 @@ def test():
                                     "context": dict(
                                         text=":x: Аннулировать",
                                         message=remind_message,
-                                        doc_id=doc_id)
+                                        doc_id=doc_id,
+                                        manager_nickname=manager_nickname,
+                                    )
                                 },
                             },
                         ],
