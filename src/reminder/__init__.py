@@ -306,103 +306,6 @@ def send_and_update_docs_reminders():  # must
                                            "hooks/underApproval",
                                     "context": dict(
                                         text=":memo: На согласовании",
-                                        message=remind_message)
-                                },
-                            },
-                            {
-                                "id": "couldNotGetInTouch",
-                                "name": ":shrug: Не удалось связаться",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/couldNotGetInTouch",
-                                    "context": dict(
-                                        text=":shrug: Не удалось связаться",
-                                        message=remind_message)
-                                },
-                            },
-                            {
-                                "id": "cancel",
-                                "name": ":x: Аннулировать",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/cancel",
-                                    "context": dict(
-                                        text=":x: Аннулировать",
-                                        message=remind_message,
-                                        doc_id=doc_id)
-                                },
-                            },
-                        ],
-                    }
-                ]
-            }
-        }
-        if message_id and channel_id:
-            try:
-                send_message_to_thread(channel_id, message_id, remind_message, props)
-                # Обновляем дату напоминания
-                set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
-            except Exception as ex:
-                send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
-                                        f'Ошибка в направлении уведомлений в тред о непобходимости подписания/оплаты договорных документов: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
-        elif message_id is None and channel_id:
-            try:
-                send_message_to_channel(channel_id, remind_message, None, props)
-                # Обновляем дату напоминания
-                set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
-            except Exception as ex:
-                send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
-                                        f'Ошибка в направлении уведомлений в канал о непобходимости подписания/оплаты договорных документов: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
-        else:
-            send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
-                                    f'Не нашлось ни сообщения ни канала чтобы получить обратную связь по подписанию/оплате по документу: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
-        print("Функция send_and_update_docs_reminders выполнена:", datetime.now())
-
-def get_today_docs_reminder():
-    today = datetime.today().strftime('%Y-%m-%d')
-    with firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con:
-        cur = con.cursor() #ID, id вида документа, № документа, сумма документа, тип документа, id Договора, id менеджера, nickname менеджера
-        sql = f""" 
-        SELECT T213.ID, T213.F4567, T216.F4674 AS doc, T213.F4568 AS doc_num, T213.F4571, T213.F4576, T213.F4573, 
-               T212.F4844 , T3.F4932 AS manager_nickname, T213.F4928 AS message_id, T212.F4644, T213.F4666
-        FROM T213 
-        LEFT JOIN T216 ON T213.F4567 = T216.ID
-        LEFT JOIN T212 ON T213.F4573 = T212.ID 
-        LEFT JOIN T3 ON T212.F4844 = T3.ID 
-        WHERE T213.ID = 2948
-        """
-        cur.execute(sql)
-        result = cur.fetchall()
-        return result
-
-def test():
-    set_old_docs_reminders_for_today()
-    for i in get_today_docs_reminder()[0:1]:
-        doc_id = i[0]
-        doc_name = i[2]
-        doc_num = i[3]
-        doc_sum = i[4]
-        doc_type = i[5]
-        manager_nickname = i[8]
-        message_id = i[9]
-        channel_id = i[10]
-        date_remind = i[11]
-        # new_date_remind = date_remind + timedelta(weeks=1)
-        remind_message = f'У документа № {doc_num} ({doc_name} {doc_type}) на сумму {f_num(doc_sum)} р. наступила дата ожидаемой оплаты/подписания, \n\
-        @{manager_nickname} Просьба связаться с Заказчиком и узнать когда оплатят/подпишут'
-        props = {
-            "props": {
-                "attachments": [
-                    {
-                        "actions": [
-                            {
-                                "id": "underApproval",
-                                "name": ":memo: На согласовании",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/underApproval",
-                                    "context": dict(
-                                        text=":memo: На согласовании",
                                         message=remind_message,
                                         manager_nickname=manager_nickname,
                                     )
@@ -440,8 +343,26 @@ def test():
                 ]
             }
         }
-        send_message_to_channel('xcuskm3u9pbz9c5yqp6o49iuay', remind_message, None, props)
-        send_message_to_thread('xcuskm3u9pbz9c5yqp6o49iuay', '9u6brj9ct7d78ytm1en3sccrse', remind_message, props)
+        if message_id and channel_id:
+            try:
+                send_message_to_thread(channel_id, message_id, remind_message, props)
+                # Обновляем дату напоминания
+                set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
+            except Exception as ex:
+                send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
+                                        f'Ошибка в направлении уведомлений в тред о непобходимости подписания/оплаты договорных документов: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
+        elif message_id is None and channel_id:
+            try:
+                send_message_to_channel(channel_id, remind_message, None, props)
+                # Обновляем дату напоминания
+                set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
+            except Exception as ex:
+                send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
+                                        f'Ошибка в направлении уведомлений в канал о непобходимости подписания/оплаты договорных документов: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
+        else:
+            send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
+                                    f'Не нашлось ни сообщения ни канала чтобы получить обратную связь по подписанию/оплате по документу: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
+        print("Функция send_and_update_docs_reminders выполнена:", datetime.now())
 
 # ============================================= Напоминания о простановке приоритета у лида ===================================
 
