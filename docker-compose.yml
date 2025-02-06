@@ -2,8 +2,12 @@ services:
   botMattermost:
     image: bot_mattermost
     build: './src/botMattermost'
+    volumes:
+      - ./src/botMattermost:/app
     ports:
       - 8579:8579
   reminder:
     image: reminder
     build: './src/reminder'
+    volumes:
+      - ./src/reminder:/app

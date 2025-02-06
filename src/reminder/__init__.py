@@ -1,8 +1,8 @@
 import firebirdsql
 from datetime import timedelta, datetime
 import requests
-from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, \
-    webhook_host_url, webhook_host_port
+from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
+    webhook_host_port
 
 
 def send_message_to_thread(channel_id, root_id, message, props={}):
@@ -276,8 +276,7 @@ def set_old_docs_reminders_for_today():
             cur.execute(sql_update, ids_to_update)  # Передаем список ID для обновления
         return result
 
-
-def send_and_update_docs_reminders():  # must
+def send_and_update_docs_reminders():
     set_old_docs_reminders_for_today()
     for i in get_today_docs_reminders():
         doc_id = i[0]
