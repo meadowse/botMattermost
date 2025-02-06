@@ -12,11 +12,11 @@ schedule.every().thursday.at("10:00").do(send_and_update_kp_reminders)
 schedule.every().friday.at("10:00").do(send_and_update_kp_reminders)
 
 # Запланируем выполнение функции по договорным документам в 10:00 по будням
-schedule.every().monday.at("10:15").do(send_and_update_docs_reminders)
-schedule.every().tuesday.at("10:15").do(send_and_update_docs_reminders)
-schedule.every().wednesday.at("10:15").do(send_and_update_docs_reminders)
-schedule.every().thursday.at("10:15").do(send_and_update_docs_reminders)
-schedule.every().friday.at("10:15").do(send_and_update_docs_reminders)
+schedule.every().monday.at("11:00").do(send_and_update_docs_reminders)
+schedule.every().tuesday.at("11:00").do(send_and_update_docs_reminders)
+schedule.every().wednesday.at("11:00").do(send_and_update_docs_reminders)
+schedule.every().thursday.at("11:00").do(send_and_update_docs_reminders)
+schedule.every().friday.at("11:00").do(send_and_update_docs_reminders)
 
 # Запланируем выполнение функции по приоритетам лидов в 12:00 по будням
 schedule.every().monday.at("12:00").do(send_empty_priority_reminders)
