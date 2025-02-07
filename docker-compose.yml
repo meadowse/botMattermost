@@ -2,6 +2,7 @@ services:
   botMattermost:
     image: bot_mattermost
     build: './src/botMattermost'
+    restart: unless-stopped
     volumes:
       - ./src/botMattermost:/app
     ports:
@@ -9,5 +10,6 @@ services:
   reminder:
     image: reminder
     build: './src/reminder'
+    restart: unless-stopped
     volumes:
       - ./src/reminder:/app
