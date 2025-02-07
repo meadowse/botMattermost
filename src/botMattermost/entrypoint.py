@@ -2,11 +2,6 @@ from mmpy_bot import Bot, ExamplePlugin, Settings, WebHookExample
 from webhookPlugin import webhookPlugin
 from config import MATTERMOST_URL, MATTERMOST_PORT, ACCESS_TOKEN, WEBHOOK_HOST_URL
 
-print(MATTERMOST_URL)
-print(MATTERMOST_PORT)
-print(ACCESS_TOKEN)
-print(WEBHOOK_HOST_URL)
-
 bot = Bot(
     # Either specify your settings here or use environment variables to override them.
     # See docker-compose.yml for an example you can use for local development.

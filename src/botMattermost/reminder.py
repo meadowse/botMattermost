@@ -1,8 +1,8 @@
 import firebirdsql
 from datetime import timedelta, datetime
 import requests
-from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, \
-    webhook_host_url, webhook_host_port
+from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
+    webhook_host_port
 
 
 def send_message_to_thread(channel_id, root_id, message, props={}):
@@ -151,7 +151,7 @@ def set_old_kp_reminders_for_today():
             cur.execute(sql_update, ids_to_update)  # Передаем список ID для обновления
         return result
 
-
+# TODO Сделать такие же кнопки как в документах
 def send_and_update_kp_reminders():
     set_old_kp_reminders_for_today()
     for i in get_today_kp_reminders():
@@ -169,15 +169,64 @@ def send_and_update_kp_reminders():
 @{manager_nickname} Просьба связаться с Заказчиком и получить обратную связь по нашему КП'
         print(kp_id, kp_num, message_id, date_send, manager_id, date_remind, kp_status, new_date_remind,
               manager_nickname, root_id, remind_message)
+        props = {
+            "props": {
+                "attachments": [
+                    {
+                        "actions": [
+                            {
+                                "id": "underApproval",
+                                "name": ":memo: На согласовании",
+                                "integration": {
+                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
+                                           "hooks/underApproval",
+                                    "context": dict(
+                                        text=":memo: На согласовании",
+                                        message=remind_message,
+                                        manager_nickname=manager_nickname,
+                                    )
+                                },
+                            },
+                            {
+                                "id": "couldNotGetInTouch",
+                                "name": ":shrug: Не удалось связаться",
+                                "integration": {
+                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
+                                           "hooks/couldNotGetInTouch",
+                                    "context": dict(
+                                        text=":shrug: Не удалось связаться",
+                                        message=remind_message,
+                                        manager_nickname=manager_nickname,
+                                    )
+                                },
+                            },
+                            {
+                                "id": "failure",
+                                "name": ":x: Провал",
+                                "integration": {
+                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
+                                           "hooks/failure",
+                                    "context": dict(
+                                        text=":x: Провал",
+                                        message=remind_message,
+                                        kp_id=kp_id,
+                                        manager_nickname=manager_nickname,
+                                    )
+                                },
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
         try:
-            send_message_to_thread('kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message)
+            send_message_to_thread('kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message, props)
             # Обновляем дату напоминания
             set_value_by_id('T209', 'F4529', new_date_remind, kp_id)
         except Exception as ex:
             send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy',
                                     f'Ошибка в направлении уведомлений о получении обратной связи: {kp_id, kp_num, message_id, date_send, manager_id, date_remind, kp_status, new_date_remind, manager_nickname, root_id, remind_message, ex}')
         print("Функция send_and_update_kp_reminders выполнена:", datetime.now())
-
 
 # =========================================== ПРОВЕРКА НЕОПЛАЧЕННЫХ СЧЕТОВ И НЕПОДПИСАННЫХ ДОКУМЕНТОВ =======================================
 
@@ -276,8 +325,7 @@ def set_old_docs_reminders_for_today():
             cur.execute(sql_update, ids_to_update)  # Передаем список ID для обновления
         return result
 
-
-def send_and_update_docs_reminders():  # must
+def send_and_update_docs_reminders():
     set_old_docs_reminders_for_today()
     for i in get_today_docs_reminders():
         doc_id = i[0]
