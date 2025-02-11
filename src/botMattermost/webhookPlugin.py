@@ -56,7 +56,7 @@ class webhookPlugin(Plugin):
             )
 
     @listen_webhook("failure")
-    async def cancel(self, event: WebHookEvent):
+    async def failure(self, event: WebHookEvent):
         """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
         либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
         if event.body.get('user_name') == event.context.get("manager_nickname"):

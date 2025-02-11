@@ -241,12 +241,13 @@ def get_today_docs_reminders():
         FROM T213 
         LEFT JOIN T216 ON T213.F4567 = T216.ID
         LEFT JOIN T212 ON T213.F4573 = T212.ID 
-        LEFT JOIN T3 ON T212.F4844 = T3.ID 
+        LEFT JOIN T3 ON T213.F5021 = T3.ID 
         WHERE T213.F4666 = '{today}' AND T213.F4570 IS NULL
         """
         cur.execute(sql)
         result = cur.fetchall()
         return result
+        # LEFT JOIN T3 ON T212.F4844 = T3.ID 
 
 
 def get_today_task_reminders():
@@ -288,13 +289,7 @@ def get_today_dr_reminders():
         FROM T3 
         WHERE 
         (EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM CURRENT_DATE) AND 
-        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM CURRENT_DATE)) OR
-        (EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM CURRENT_DATE) AND 
-        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM CURRENT_DATE) + 1) OR
-        (EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM CURRENT_DATE) AND 
-        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM CURRENT_DATE) + 2) OR
-        (EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM CURRENT_DATE) AND 
-        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM CURRENT_DATE) + 3) AND
+        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM CURRENT_DATE)) AND
         T3.F5383 = 1;
         """
         cur.execute(sql)
