@@ -131,18 +131,19 @@ class webhookPlugin(Plugin):
             )
 
     @listen_webhook("nonStandard")
-    async def nonStandard(self, event: WebHookEvent, message: Message):
+    async def nonStandard(self, event: WebHookEvent):
         """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
         либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
         if event.body.get('user_name') in event.context.get("managerNicknames"):
             if isinstance(event, ActionEvent):
-                self.driver.reply_to(message, '', props={
-                    "attachments": [
-                        {
-                            "text": f"⛔Неквал от {event.body.get('user_name')}",
-                        }
-                    ]
-                })
+                print(event)
+                # self.driver.reply_to(message, '', props={
+                #     "attachments": [
+                #         {
+                #             "text": f"⛔Неквал от {event.body.get('user_name')}",
+                #         }
+                #     ]
+                # })
                 # self.driver.respond_to_web(
                 #     event,
                 #     {
