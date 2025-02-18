@@ -2,7 +2,15 @@ import schedule
 from datetime import datetime
 import time
 from __init__ import send_and_update_kp_reminders, send_and_update_docs_reminders, send_empty_priority_reminders, \
-    update_channels, send_task_reminders, send_dr_reminders, send_message_to_channel
+    update_channels, send_task_reminders, send_dr_reminders, send_message_to_channel, isp_srok_reminder, check_all_employee_and_add_oko_id
+
+# Запланируем выполнение функции по напоминаниям о задачах в 07:00 по будням
+schedule.every().monday.at("07:00").do(check_all_employee_and_add_oko_id)
+schedule.every().tuesday.at("07:00").do(check_all_employee_and_add_oko_id)
+schedule.every().wednesday.at("07:00").do(check_all_employee_and_add_oko_id)
+schedule.every().thursday.at("07:00").do(check_all_employee_and_add_oko_id)
+schedule.every().friday.at("07:00").do(check_all_employee_and_add_oko_id)
+
 
 # Запланируем выполнение функции по напоминаниям о задачах в 09:10 по будням
 schedule.every().monday.at("09:10").do(send_task_reminders)
@@ -32,6 +40,13 @@ schedule.every().wednesday.at("10:15").do(send_and_update_docs_reminders)
 schedule.every().thursday.at("10:15").do(send_and_update_docs_reminders)
 schedule.every().friday.at("10:15").do(send_and_update_docs_reminders)
 
+# Запланируем выполнение функции напоминания о скором завершении испытательного срока в 10:30 по будням
+schedule.every().monday.at("10:30").do(isp_srok_reminder)
+schedule.every().tuesday.at("10:30").do(isp_srok_reminder)
+schedule.every().wednesday.at("10:30").do(isp_srok_reminder)
+schedule.every().thursday.at("10:30").do(isp_srok_reminder)
+schedule.every().friday.at("10:30").do(isp_srok_reminder)
+
 # Запланируем выполнение функции по приоритетам лидов в 12:00 по будням
 schedule.every().monday.at("12:00").do(send_empty_priority_reminders)
 schedule.every().tuesday.at("12:00").do(send_empty_priority_reminders)
@@ -53,6 +68,7 @@ schedule.every().friday.at("03:00").do(update_channels)
 
 send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', f'{datetime.now()} Процесс reminder запущен')
 print(f'{datetime.now()} Процесс reminder запущен')
+# send_dr_reminders()
 # update_channels()
 # send_task_reminders()
 
@@ -60,3 +76,4 @@ while True:
     print(f'{datetime.now()} Проверяем, есть ли запланированные задачи...')
     schedule.run_pending()  # Проверяем, есть ли запланированные задачи
     time.sleep(60)  # Пауза в 60 секунд
+

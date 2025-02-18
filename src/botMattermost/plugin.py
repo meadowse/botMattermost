@@ -27,7 +27,6 @@ class Section:
     title: Optional[str] = None
     text: Optional[str] = None
     fields: Optional[list[Field]] = None
-
     def asdict(self):
         res = {}
         if self.fields:
@@ -36,7 +35,6 @@ class Section:
             res['title'] = str(self.title)
         if self.text:
             res['text'] = str(self.text)
-
         return res
 
 class SearchPlugin(Plugin):

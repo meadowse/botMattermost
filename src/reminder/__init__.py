@@ -1,5 +1,7 @@
 import firebirdsql
 from datetime import timedelta, datetime
+import time
+import json
 import requests
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
     webhook_host_port
@@ -17,7 +19,8 @@ def send_message_to_thread(channel_id, root_id, message, props={}):
     if response.status_code == 201:
         print('Message sent to thread successfully.')
     else:
-        print(f'Failed to send message to thread: {response.status_code}, {response.text}')
+        print(
+            f'Failed to send message to thread: {response.status_code}, {response.text}')
 
 
 def send_message_to_channel(channel_id, message, file_ids=None, props={}):
@@ -38,7 +41,8 @@ def send_message_to_channel(channel_id, message, file_ids=None, props={}):
         print('Message sent successfully.')
         return response.json()
     else:
-        print(f'Failed to send message: {response.status_code}, {response.text}')
+        print(
+            f'Failed to send message: {response.status_code}, {response.text}')
 
 
 def send_message_to_oko(oko_channel_id, message, file_ids=None):
@@ -59,7 +63,8 @@ def send_message_to_oko(oko_channel_id, message, file_ids=None):
         print('Message sent successfully.')
         return response.json()
     else:
-        print(f'Failed to send message: {response.status_code}, {response.text}')
+        print(
+            f'Failed to send message: {response.status_code}, {response.text}')
 
 
 def set_value_by_id(table, field, value, id):
@@ -119,7 +124,8 @@ def get_today_kp_reminders():
     today = datetime.today().strftime('%Y-%m-%d')
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
-        cur = con.cursor()  # ID, № КП, message_id, дата отправки, id менеджера, дата напоминания, статус
+        # ID, № КП, message_id, дата отправки, id менеджера, дата напоминания, статус
+        cur = con.cursor()
         sql = f""" 
         SELECT ID, F4480, F4505, F4492, F4496, F4529, F4491 FROM T209 WHERE F4529 = '{today}' AND (F4491 = 'Отправлено' OR F4491 = 'Предварительное согласие')
         """
@@ -132,7 +138,8 @@ def set_old_kp_reminders_for_today():
     today = datetime.today().strftime('%Y-%m-%d')
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
-        cur = con.cursor()  # ID, № КП, message_id, дата отправки, id менеджера, дата напоминания, статус
+        # ID, № КП, message_id, дата отправки, id менеджера, дата напоминания, статус
+        cur = con.cursor()
         sql = f""" 
         SELECT ID, F4480, F4505, F4492, F4496, F4529, F4491 FROM T209 WHERE F4529 < '{today}' AND (F4491 = 'Отправлено' OR F4491 = 'Предварительное согласие')
         """
@@ -140,18 +147,23 @@ def set_old_kp_reminders_for_today():
         result = cur.fetchall()
         # Запрос на обновление
         if result:  # Проверяем, есть ли результаты для обновления
-            ids_to_update = [row[0] for row in result]  # Предполагается, что ID находится в первом столбце
-            ids_placeholder = ', '.join(['?'] * len(ids_to_update))  # Создаем плейсхолдеры для параметров
+            # Предполагается, что ID находится в первом столбце
+            ids_to_update = [row[0] for row in result]
+            # Создаем плейсхолдеры для параметров
+            ids_placeholder = ', '.join(['?'] * len(ids_to_update))
 
             sql_update = f"""
             UPDATE T209 
             SET F4529 = '{today}' 
             WHERE ID IN ({ids_placeholder})
             """
-            cur.execute(sql_update, ids_to_update)  # Передаем список ID для обновления
+            cur.execute(
+                sql_update, ids_to_update)  # Передаем список ID для обновления
         return result
 
 # TODO Сделать такие же кнопки как в документах
+
+
 def send_and_update_kp_reminders():
     set_old_kp_reminders_for_today()
     for i in get_today_kp_reminders():
@@ -179,7 +191,7 @@ def send_and_update_kp_reminders():
                                 "name": ":memo: На согласовании",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/underApproval",
+                                    "hooks/underApproval",
                                     "context": dict(
                                         text=":memo: На согласовании",
                                         message=remind_message,
@@ -192,7 +204,7 @@ def send_and_update_kp_reminders():
                                 "name": ":shrug: Не удалось связаться",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/couldNotGetInTouch",
+                                    "hooks/couldNotGetInTouch",
                                     "context": dict(
                                         text=":shrug: Не удалось связаться",
                                         message=remind_message,
@@ -205,7 +217,7 @@ def send_and_update_kp_reminders():
                                 "name": ":x: Провал",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/failure",
+                                    "hooks/failure",
                                     "context": dict(
                                         text=":x: Провал",
                                         message=remind_message,
@@ -220,7 +232,8 @@ def send_and_update_kp_reminders():
             }
         }
         try:
-            send_message_to_thread('kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message, props)
+            send_message_to_thread(
+                'kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message, props)
             # Обновляем дату напоминания
             set_value_by_id('T209', 'F4529', new_date_remind, kp_id)
         except Exception as ex:
@@ -229,6 +242,7 @@ def send_and_update_kp_reminders():
         print("Функция send_and_update_kp_reminders выполнена:", datetime.now())
 
 # =========================================== ПРОВЕРКА НЕОПЛАЧЕННЫХ СЧЕТОВ И НЕПОДПИСАННЫХ ДОКУМЕНТОВ =======================================
+
 
 def get_today_docs_reminders():
     today = datetime.today().strftime('%Y-%m-%d')
@@ -247,7 +261,7 @@ def get_today_docs_reminders():
         cur.execute(sql)
         result = cur.fetchall()
         return result
-        # LEFT JOIN T3 ON T212.F4844 = T3.ID 
+        # LEFT JOIN T3 ON T212.F4844 = T3.ID
 
 
 def get_today_task_reminders():
@@ -297,11 +311,30 @@ def get_today_dr_reminders():
         return result
 
 
+def get_today_isp_srok_reminders():
+    with firebirdsql.connect(host=host, database=database, user=user, password=password,
+                             charset=charset) as con:
+        cur = con.cursor()  # ID, id вида документа, № документа, сумма документа, тип документа, id Договора, id менеджера, nickname менеджера
+        sql = f""" 
+        SELECT 
+        T3.F4886 AS NAME,
+        T3.F5706 AS DATE_OF_WORKING_START 
+        FROM T3 
+        WHERE 
+        T3.F5706 = CURRENT_DATE - 75 AND
+        T3.F5383 = 1;
+        """
+        cur.execute(sql)
+        result = cur.fetchall()
+        return result
+
+
 def set_old_docs_reminders_for_today():
     today = datetime.today().strftime('%Y-%m-%d')
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
-        cur = con.cursor()  # ID, № КП, message_id, дата отправки, id менеджера, дата напоминания, статус
+        # ID, № КП, message_id, дата отправки, id менеджера, дата напоминания, статус
+        cur = con.cursor()
         sql = f""" 
         SELECT ID, F4567, F4568, F4571, F4576 FROM T213 WHERE F4666 < '{today}' AND F4570 IS NULL AND F4569 > '2024-08-01'
         """
@@ -309,16 +342,20 @@ def set_old_docs_reminders_for_today():
         result = cur.fetchall()
         # Запрос на обновление
         if result:  # Проверяем, есть ли результаты для обновления
-            ids_to_update = [row[0] for row in result]  # Предполагается, что ID находится в первом столбце
-            ids_placeholder = ', '.join(['?'] * len(ids_to_update))  # Создаем плейсхолдеры для параметров
+            # Предполагается, что ID находится в первом столбце
+            ids_to_update = [row[0] for row in result]
+            # Создаем плейсхолдеры для параметров
+            ids_placeholder = ', '.join(['?'] * len(ids_to_update))
 
             sql_update = f"""
             UPDATE T213 
             SET F4666 = '{today}' 
             WHERE ID IN ({ids_placeholder})
             """
-            cur.execute(sql_update, ids_to_update)  # Передаем список ID для обновления
+            cur.execute(
+                sql_update, ids_to_update)  # Передаем список ID для обновления
         return result
+
 
 def send_and_update_docs_reminders():
     set_old_docs_reminders_for_today()
@@ -333,8 +370,9 @@ def send_and_update_docs_reminders():
         channel_id = i[10]
         date_remind = i[11]
         new_date_remind = date_remind + timedelta(weeks=1)
-        print(doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id)
-        remind_message = f'У документа № {doc_num} ({doc_name} {doc_type}) на сумму {f_num(doc_sum)} р. наступила дата ожидаемой оплаты/подписания, \n\
+        print(doc_id, doc_name, doc_num, doc_sum, doc_type,
+              manager_nickname, message_id, channel_id)
+        remind_message = f'У документа № {doc_num} (**{doc_name}** {doc_type}) на сумму {format_number(doc_sum)} р. наступила дата ожидаемой оплаты/подписания, \n\
 @{manager_nickname} Просьба связаться с Заказчиком и узнать когда оплатят/подпишут'
         props = {
             "props": {
@@ -346,7 +384,7 @@ def send_and_update_docs_reminders():
                                 "name": ":memo: На согласовании",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/underApproval",
+                                    "hooks/underApproval",
                                     "context": dict(
                                         text=":memo: На согласовании",
                                         message=remind_message,
@@ -359,7 +397,7 @@ def send_and_update_docs_reminders():
                                 "name": ":shrug: Не удалось связаться",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/couldNotGetInTouch",
+                                    "hooks/couldNotGetInTouch",
                                     "context": dict(
                                         text=":shrug: Не удалось связаться",
                                         message=remind_message,
@@ -372,7 +410,7 @@ def send_and_update_docs_reminders():
                                 "name": ":x: Аннулировать",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/cancel",
+                                    "hooks/cancel",
                                     "context": dict(
                                         text=":x: Аннулировать",
                                         message=remind_message,
@@ -388,7 +426,8 @@ def send_and_update_docs_reminders():
         }
         if message_id and channel_id:
             try:
-                send_message_to_thread(channel_id, message_id, remind_message, props)
+                send_message_to_thread(
+                    channel_id, message_id, remind_message, props)
                 # Обновляем дату напоминания
                 set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
             except Exception as ex:
@@ -396,7 +435,8 @@ def send_and_update_docs_reminders():
                                         f'Ошибка в направлении уведомлений в тред о непобходимости подписания/оплаты договорных документов: {doc_id, doc_name, doc_num, doc_sum, doc_type, manager_nickname, message_id, channel_id, remind_message}')
         elif message_id is None and channel_id:
             try:
-                send_message_to_channel(channel_id, remind_message, None, props)
+                send_message_to_channel(
+                    channel_id, remind_message, None, props)
                 # Обновляем дату напоминания
                 set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
             except Exception as ex:
@@ -408,6 +448,7 @@ def send_and_update_docs_reminders():
         print("Функция send_and_update_docs_reminders выполнена:", datetime.now())
 
 # ============================================= Напоминания о простановке приоритета у лида ===================================
+
 
 def get_empty_priority_reminders():
     today = datetime.today().strftime('%Y-%m-%d')
@@ -433,7 +474,8 @@ def send_empty_priority_reminders():
         message_id = i[4]
         remind_message = f' @{manager_nickname} у Лида № {lead_num} нужно проставить Приоритет'
         # print(f'{lead_num=} {message_id=} {manager_nickname=}')
-        send_message_to_thread('kbcyc66jbtbcubs93h43nf19dy', message_id, remind_message)
+        send_message_to_thread(
+            'kbcyc66jbtbcubs93h43nf19dy', message_id, remind_message)
 
 
 def get_info_about_channels():
@@ -463,11 +505,83 @@ def update_channel(channel_id, header, purpose):
         'header': header,
         'purpose': purpose
     }
+
+    # Обновляем заголовок и описание канала
     response = requests.put(url, json=payload, headers=headers)
     if response.status_code == 200:
         print('Channel header and purpose updated successfully.')
+
+        # Ждем немного, чтобы сообщения успели появиться
+        time.sleep(1)  # Можно настроить время ожидания
+
+        # Получаем последние сообщения из канала
+        posts_url = f'{MATTERMOST_URL}/api/v4/channels/{channel_id}/posts'
+        posts_response = requests.get(posts_url, headers=headers)
+
+        if posts_response.status_code == 200:
+            posts = posts_response.json().get('order', [])
+            if posts:
+                # Список для хранения ID сообщений об обновлении
+                messages_to_delete = []
+
+                # Проверяем последние сообщения
+                for post_id in posts:
+                    post = posts_response.json().get('posts', {}).get(post_id, {})
+                    if post:
+                        # Проверяем, было ли сообщение отправлено за последние 5 секунд
+                        last_post_time = datetime.fromtimestamp(
+                            post['create_at'] / 1000)  # Время в миллисекундах
+                        if datetime.now() - last_post_time <= timedelta(seconds=5):
+                            # Проверяем, содержит ли сообщение информацию об обновлении
+                            if 'updated the channel header' in post.get('message', '') or 'updated the channel purpose' in post.get('message', ''):
+                                messages_to_delete.append(post_id)
+
+                # Удаляем найденные сообщения
+                for message_id in messages_to_delete:
+                    delete_url = f'{MATTERMOST_URL}/api/v4/posts/{message_id}'
+                    delete_response = requests.delete(
+                        delete_url, headers=headers)
+                    if delete_response.status_code == 200:
+                        print(f'Message {message_id} deleted successfully.')
+                    else:
+                        print(
+                            f'Failed to delete message {message_id}: {delete_response.status_code}, {delete_response.text}')
+
+                if not messages_to_delete:
+                    print('No update messages found to delete.')
+            else:
+                print('No posts found in the channel.')
+        else:
+            print(
+                f'Failed to get posts: {posts_response.status_code}, {posts_response.text}')
     else:
-        print(f'Failed to update channel: {response.status_code}, {response.text}')
+        print(
+            f'Failed to update channel: {response.status_code}, {response.text}')
+
+
+def format_number(num):
+    # Проверяем, является ли входное значение None
+    if num is None:
+        return "0"
+
+    # Округляем число до двух знаков после запятой
+    rounded_num = round(num, 2)
+
+    # Преобразуем число в строку
+    num_str = f"{rounded_num:.2f}"
+
+    # Разделяем целую и дробную части
+    whole_part, decimal_part = num_str.split('.')
+
+    # Добавляем разделители групп разрядов
+    whole_part_with_commas = '{:,.0f}'.format(
+        float(whole_part)).replace(',', ' ')
+
+    # Формируем итоговую строку
+    if decimal_part == '00':
+        return whole_part_with_commas
+    else:
+        return f"{whole_part_with_commas}.{decimal_part}"
 
 
 def update_channels():
@@ -487,6 +601,9 @@ def update_channels():
         print(
             f'{k}, {dog_id=}, {stadia=}, {address=}, {dog_num=}, {subject=}, {price=}, {avans=}, {oplacheno=}, {channel_id=}')
         print(f'-------')
+        print(f'{type(price)=}')
+        print(f'{type(avans)=}')
+        print(f'{type(oplacheno)=}')
 
         # формируем header
 
@@ -501,7 +618,8 @@ def update_channels():
 
         if stadia != None and stadia != '':
             print(f'{stadia=}')
-            emo_header = get_value_by_value('T298', 'F5648', stadia, 'F5534')[0]
+            emo_header = get_value_by_value(
+                'T298', 'F5648', stadia, 'F5534')[0]
             print(f'{emo_header=}')
 
             stadia = '**' + stadia + '**'
@@ -537,7 +655,7 @@ def update_channels():
             emo_purpose = '🔴'
         else:
             emo_purpose = ''
-        purpose = f'{emo_purpose}Цена: *{f_num(price)} руб.* {emo_purpose}Аванс: *{f_num(avans)} руб.* {emo_purpose}Оплачено: *{f_num(oplacheno)} руб.* Документ-основание: {doc_osnov}'
+        purpose = f'{emo_purpose}Цена: *{format_number(price)} руб.* {emo_purpose}Аванс: *{format_number(avans)} руб.* {emo_purpose}Оплачено: *{format_number(oplacheno)} руб.* Документ-основание: {doc_osnov}'
 
         print(f'{header=}, {purpose=}')
         update_channel(channel_id, header, purpose)
@@ -547,7 +665,8 @@ def update_channels():
 # ============================================= Напоминания о задачах ===================================
 
 def send_task_reminders():
-    today = datetime.today().strftime('%Y-%m-%d')  # Сегодняшняя дата в формате строки
+    # Сегодняшняя дата в формате строки
+    today = datetime.today().strftime('%Y-%m-%d')
     for i in get_today_task_reminders():
         task_id = i[0]
         task = i[1]
@@ -605,5 +724,83 @@ def send_dr_reminders():
         message = f"Напоминание о дне рождении: {name}, {age_in_years(age)}, день рождения {dr_date}."
         print(message)
         send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', message)  # отправка БАИ
-        send_message_to_channel('emsxtq83jpnq8yp6gpcqfiw7ke', message)  # отправка Римме Хасановой
-        send_message_to_channel('f3d7amu5m7nqdcc4k34j48p61h', message)  # отправка Екатерине Малашенко
+        send_message_to_channel('emsxtq83jpnq8yp6gpcqfiw7ke', message) # отправка Римме Хасановой
+        send_message_to_channel('f3d7amu5m7nqdcc4k34j48p61h', message) # отправка Екатерине Малашенко
+
+
+# ============================================= Напоминания о скором завершении испытательного срока ===================================
+def isp_srok_reminder():
+    for i in get_today_isp_srok_reminders():
+        name = i[0]
+        date_of_working_start = i[1]
+        message = f"Напоминание о скором завершении испытательного срока: {name} принят на работу: {date_of_working_start}."
+        print(message)
+        send_message_to_channel(
+            'nf5xrwor7fgwpfoorp1g97ufoy', message)  # отправка БАИ
+        # отправка Екатерине Малашенко
+        send_message_to_channel('f3d7amu5m7nqdcc4k34j48p61h', message)
+
+# ============================================= Добавление чатов oko сотрудникам =======================================================
+
+def find_employee_without_oko_channel_id():
+    """Поиск сотрудников в базе без чата с Оком"""
+    with firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con:
+        cur = con.cursor()
+        sql = f"SELECT ID, F16, F10 FROM T3 WHERE F5649 IS NULL AND F16 IS NOT NULL"
+        cur.execute(sql)
+        try:
+            result = cur.fetchall()
+            con.close()
+            if result == None:
+                print(f'НЕ пустой result: {result}')
+                return []
+            else:
+                print(f'Нашли такие ID: {result}')
+                return result
+        except:
+            con.close()
+            print(f'Ошибка: ПУСТОЙ result')
+            return []
+        
+def set_value_at_id(table, field, value, id):
+	with firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con:
+		cur = con.cursor()
+		sql = f"UPDATE {table} SET {field} = '{value}' WHERE ID = '{id}'"
+		cur.execute(sql)
+		con.commit()
+		con.close()
+		# print(f'Обновили {field} до {value}')
+
+def create_oko_channel(user_id):
+    oko_bot_id = '1mrqggsjtjbj5qqte9g4thx48w'
+    user_ids = [user_id, oko_bot_id]
+    data = json.dumps(user_ids)
+    # Отправка POST-запроса
+    response = requests.post(f'{MATTERMOST_URL}/api/v4/channels/direct', headers=headers, data=data)
+
+    # Обработка ответа
+    if response.status_code == 200:
+        channel_info = response.json()
+        print("Channel created successfully:", channel_info)
+        print(f"{channel_info['id']=}")
+        return(channel_info['id'])
+    else:
+        channel_info = response.json()
+        print(f"Error: {response.status_code}")
+        print(f"Response content: {response.content.decode('utf-8')}")
+        print(f"{channel_info['id']=}")
+        return(channel_info['id'])
+
+def check_all_employee_and_add_oko_id():
+    k = 0
+    for i in find_employee_without_oko_channel_id():
+        k += 1
+        # if k >3:
+        #     break
+        user_db_id = i[0]
+        user_mm_id = i[1]
+        user_name = i[2]
+        oko_channel_id = create_oko_channel(user_mm_id)
+        set_value_at_id('T3', 'F5649', oko_channel_id, user_db_id)
+        print(f'{user_name}, mm_id = {user_mm_id}, oko_channel_id = {oko_channel_id}')
+
