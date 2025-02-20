@@ -12,11 +12,15 @@ RUN apt-get update && \
 FROM build AS build-venv
 COPY requirements.txt /requirements.txt
 RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
-
-# Copy the virtualenv into a distroless image
-FROM gcr.io/distroless/python3-debian12
-COPY --from=build-venv /venv /venv
 COPY . /app
 WORKDIR /app
 ENV TZ=Europe/Moscow
 ENTRYPOINT ["/venv/bin/python3", "entrypoint.py"]
+
+## Copy the virtualenv into a distroless image
+#FROM gcr.io/distroless/python3-debian12
+#COPY --from=build-venv /venv /venv
+#COPY . /app
+#WORKDIR /app
+#ENV TZ=Europe/Moscow
+#ENTRYPOINT ["/venv/bin/python3", "entrypoint.py"]
