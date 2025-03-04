@@ -19,12 +19,14 @@ schedule.every().wednesday.at("09:10").do(send_task_reminders)
 schedule.every().thursday.at("09:10").do(send_task_reminders)
 schedule.every().friday.at("09:10").do(send_task_reminders)
 
-# Запланируем выполнение функции по напоминаниям о ДР в 09:20 по будням
+# Запланируем выполнение функции по напоминаниям о ДР в 09:20 каждый день
 schedule.every().monday.at("09:20").do(send_dr_reminders)
 schedule.every().tuesday.at("09:20").do(send_dr_reminders)
 schedule.every().wednesday.at("09:20").do(send_dr_reminders)
 schedule.every().thursday.at("09:20").do(send_dr_reminders)
 schedule.every().friday.at("09:20").do(send_dr_reminders)
+schedule.every().saturday.at("09:20").do(send_dr_reminders)
+schedule.every().sunday.at("09:20").do(send_dr_reminders)
 
 # Запланируем выполнение функции по КП в 10:00 по будням
 schedule.every().monday.at("10:00").do(send_and_update_kp_reminders)

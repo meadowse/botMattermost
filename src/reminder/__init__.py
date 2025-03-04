@@ -250,12 +250,13 @@ def get_today_docs_reminders():
                              charset=charset) as con:
         cur = con.cursor()  # ID, id вида документа, № документа, сумма документа, тип документа, id Договора, id менеджера, nickname менеджера
         sql = f""" 
-        SELECT T213.ID, T213.F4567, T216.F4674 AS doc, T213.F4568 AS doc_num, T213.F4571, T213.F4576, T213.F4573, 
-               T212.F4844 , T3.F4932 AS manager_nickname, T213.F4928 AS message_id, T212.F4644, T213.F4666
-        FROM T213 
+        SELECT T213.ID, T213.F4567, T216.F4674 AS doc, T213.F4568 AS doc_num, T213.F4571, T213.F4576, T213.F4573,
+               T212.F4844 , MANAGER.F4932 AS manager_nickname, PROJECT_MANAGER.F4932 AS project_manager, T213.F4928 AS message_id, T212.F4644, T213.F4666
+        FROM T213
         LEFT JOIN T216 ON T213.F4567 = T216.ID
-        LEFT JOIN T212 ON T213.F4573 = T212.ID 
-        LEFT JOIN T3 ON T213.F5021 = T3.ID 
+        LEFT JOIN T212 ON T213.F4573 = T212.ID
+        LEFT JOIN T3 AS MANAGER ON T213.F5021 = MANAGER.ID
+        LEFT JOIN T3 AS PROJECT_MANAGER ON T212.F4950 = PROJECT_MANAGER.ID
         WHERE T213.F4666 = '{today}' AND T213.F4570 IS NULL
         """
         cur.execute(sql)
@@ -366,12 +367,13 @@ def send_and_update_docs_reminders():
         doc_sum = i[4]
         doc_type = i[5]
         manager_nickname = i[8]
-        message_id = i[9]
-        channel_id = i[10]
-        date_remind = i[11]
+        project_manager = i[9]
+        message_id = i[10]
+        channel_id = i[11]
+        date_remind = i[12]
         new_date_remind = date_remind + timedelta(weeks=1)
         print(doc_id, doc_name, doc_num, doc_sum, doc_type,
-              manager_nickname, message_id, channel_id)
+              manager_nickname, project_manager, message_id, channel_id)
         remind_message = f'У документа № {doc_num} (**{doc_name}** {doc_type}) на сумму {format_number(doc_sum)} р. наступила дата ожидаемой оплаты/подписания, \n\
 @{manager_nickname} Просьба связаться с Заказчиком и узнать когда оплатят/подпишут'
         props = {
@@ -388,7 +390,7 @@ def send_and_update_docs_reminders():
                                     "context": dict(
                                         text=":memo: На согласовании",
                                         message=remind_message,
-                                        manager_nickname=manager_nickname,
+                                        managerNicknames=[manager_nickname, project_manager],
                                     )
                                 },
                             },
@@ -401,7 +403,7 @@ def send_and_update_docs_reminders():
                                     "context": dict(
                                         text=":shrug: Не удалось связаться",
                                         message=remind_message,
-                                        manager_nickname=manager_nickname,
+                                        managerNicknames=[manager_nickname, project_manager],
                                     )
                                 },
                             },
@@ -415,7 +417,7 @@ def send_and_update_docs_reminders():
                                         text=":x: Аннулировать",
                                         message=remind_message,
                                         doc_id=doc_id,
-                                        manager_nickname=manager_nickname,
+                                        managerNicknames=[manager_nickname, project_manager],
                                     )
                                 },
                             },

@@ -3,6 +3,7 @@ from reminder import set_value_by_id
 import re
 from dataclasses import dataclass, asdict
 from typing import Optional
+import config
 
 @dataclass
 class Field:
@@ -31,7 +32,7 @@ class webhookPlugin(Plugin):
     async def Cancel(self, event: WebHookEvent):
         """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
         либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
-        if event.body.get('user_name') == event.context.get("manager_nickname"):
+        if event.body.get('user_name') in event.context.get("managerNicknames"):
             if isinstance(event, ActionEvent):
                 self.driver.respond_to_web(
                     event,
@@ -55,7 +56,7 @@ class webhookPlugin(Plugin):
     async def cancel(self, event: WebHookEvent):
         """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
         либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
-        if event.body.get('user_name') == event.context.get("manager_nickname"):
+        if event.body.get('user_name') in event.context.get("managerNicknames"):
             set_value_by_id('T213', 'F4570', 'Аннулирован', event.context.get("doc_id"))
             set_value_by_id('T213', 'F4666', 'NULL', event.context.get("doc_id"))
             if isinstance(event, ActionEvent):
@@ -162,23 +163,67 @@ class webhookPlugin(Plugin):
                 f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
-    # @listen_to("^((?!Найди).)*$", re.IGNORECASE)
+    # @listen_to("^(.)*$", re.IGNORECASE)
     # async def hello(self, message: Message, status):
-    #     blocks = [
-    #         Section(
-    #             title=f'Приветствую!',
-    #             text=f'Я осуществляю поиск по базе знаний [wiki]({confluence_url}). Поиск осуществляется только по публичным страницам.\nЧтобы начать поиск используйте слово **Найди** и ваш запрос, пример: **Найди цели и планы**',
-    #             fields=list(filter(None, [
-    #                 Field(
-    #                     title='Поиск осуществляется с предустановленными настройками:',
-    #                     value='', short=False),
-    #                 Field(title='Пространства', value='QA, DEV'),
-    #                 Field(title='Период', value='Последний год'),
-    #                 Field(title='Содержимое', value='Страница'),
-    #             ]
-    #                                )
-    #                         )
-    #         )
-    #     ]
-    #     mes_json = {'attachments': [block.asdict() for block in blocks]}
-    #     self.driver.respond_to_web(message, '', props=mes_json)
+    #     managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
+    #                         'b.musaev', ]  # список тех, кто может удалять и менять статус КП
+    #     props = {
+    #         "attachments": [
+    #             {
+    #                 "actions": [
+    #                     {
+    #                         "id": "delete",
+    #                         "name": "❌Удалить",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
+    #                                    "hooks/delete",
+    #                             "context": dict(
+    #                                 text="❌Удалить",
+    #                                 managerNicknames=managerNicknames,
+    #                             )
+    #                         },
+    #                     },
+    #                     {
+    #                         "id": "nonStandard",
+    #                         "name": "⛔Неквал",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
+    #                                    "hooks/nonStandard",
+    #                             "context": dict(
+    #                                 text="⛔Неквал",
+    #                                 # message=message,
+    #                                 managerNicknames=managerNicknames,
+    #                             )
+    #                         },
+    #                     },
+    #                     {
+    #                         "id": "createLead",
+    #                         "name": "🚩Создать Лида",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
+    #                                    "hooks/createLead",
+    #                             "context": dict(
+    #                                 text="🚩Создать Лида",
+    #                                 # message=message,
+    #                                 managerNicknames=managerNicknames,
+    #                             )
+    #                         },
+    #                     },
+    #                     {
+    #                         "id": "createKP",
+    #                         "name": "💲Создать КП",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
+    #                                    "hooks/createKP",
+    #                             "context": dict(
+    #                                 text="💲Создать КП",
+    #                                 # message=message,
+    #                                 managerNicknames=managerNicknames,
+    #                             )
+    #                         },
+    #                     },
+    #                 ],
+    #             }
+    #         ]
+    #     }
+    #     self.driver.reply_to(message, '', props=props)
