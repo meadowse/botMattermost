@@ -1,0 +1,10 @@
+services:
+  botMattermost:
+    image: bot_mattermost
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./src/botMattermost:/app
+    ports:
+      - 8579:8579

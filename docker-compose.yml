@@ -1,0 +1,15 @@
+services:
+  botMattermost:
+    image: bot_mattermost
+    build: './src/botMattermost'
+    restart: unless-stopped
+    volumes:
+      - ./src/botMattermost:/app
+    ports:
+      - 8579:8579
+  reminder:
+    image: reminder
+    build: './src/reminder'
+    restart: unless-stopped
+    volumes:
+      - ./src/reminder:/app

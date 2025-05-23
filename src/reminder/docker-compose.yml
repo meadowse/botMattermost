@@ -1,0 +1,8 @@
+services:
+  reminder:
+    image: reminder
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./src/reminder:/app
