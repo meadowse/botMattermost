@@ -4,7 +4,6 @@ import requests
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
     webhook_host_port
 
-
 def send_message_to_thread(channel_id, root_id, message, props={}):
     url = f'{MATTERMOST_URL}/api/v4/posts'
     payload = {
