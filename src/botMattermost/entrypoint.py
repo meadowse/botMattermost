@@ -16,7 +16,8 @@ bot = Bot(
         # WEBHOOK_HOST_PORT = 8579,
         # LOG_LEVEL = logging.DEBUG,
     ),
-    plugins=[ExamplePlugin(), WebHookExample(), webhookPlugin(),
+    plugins=[ExamplePlugin(), WebHookExample(),
+             webhookPlugin(),
              # SearchPlugin(),
              ],  # Add your own plugins here.
 )

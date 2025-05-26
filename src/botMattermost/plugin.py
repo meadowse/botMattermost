@@ -13,8 +13,8 @@ import firebirdsql
 import mattermostautodriver
 import datetime
 import asyncio
-from config import confluence_url, host, database, user, password, charset, webhookHostUrl, \
-    webhook_host_port, mattermost_host, mattermost_port, webhook_host_url, MATTERMOST_URL, MATTERMOST_PORT
+from config import confluence_url, host, database, user, password, charset, webhookHostUrl, headers, \
+    webhook_host_port, mattermost_host, mattermost_port, webhook_host_url, MATTERMOST_URL, MATTERMOST_PORT, headers
 from reminder import send_message_to_channel
 
 
@@ -40,8 +40,9 @@ class Section:
         return res
 
 class SearchPlugin(Plugin):
-    @listen_to("задача", re.IGNORECASE)
+    @listen_to("задач", re.IGNORECASE)
     async def hello(self, message: Message):
+        # log.info(message.body)
         mes_json = {
             'attachments': [
                 {
@@ -51,19 +52,25 @@ class SearchPlugin(Plugin):
                             "name": "Создать задачу",
                             "integration": {
                                 "url": f"{webhookHostUrl}:{webhook_host_port}/hooks/createTask",
-                                "context": dict(reply_id=message.reply_id)
+                                "context": dict(reply_id=message.reply_id, message=message.text),
                             },
                         }
                     ]
                 }
             ]
         }
-        # log.info(mes_json)
-        self.driver.reply_to(message, '', props=mes_json)
+        data = {'id': message.id, 'message': message.text, 'props': mes_json}
+        response = requests.put(f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{message.id}",
+                                json=data, headers=headers)
+        if response.status_code == 200:
+            log.info('Message sent successfully.')
+            log.info(response.json())
+        else:
+            log.info(f'Failed to send message: {response.status_code}, {response.text}')
 
     @listen_webhook("createTask")
     async def createTask(self, event: WebHookEvent):
-        # log.info(event.body)
+        # log.info(event.body['user_id'])
         msg_body = event.body['context']['reply_id']
         msg = Message(msg_body)
         today = datetime.datetime.strftime(datetime.date.today(), '%d.%m.%y')
@@ -100,7 +107,8 @@ class SearchPlugin(Plugin):
                             "display_name": "Задача",
                             "placeholder": "Задача",
                             "name": "task",
-                            "type": "text"
+                            "type": "text",
+                            'default': event.body['context']['message']
                         },
                         {
                             "display_name": "Исполнитель",
@@ -138,7 +146,7 @@ class SearchPlugin(Plugin):
                         #     # , 'default': event.body['user_name']
                         # }
                     ],
-                    "submit_label": "создать",
+                    "submit_label": "Cоздать",
                     "state": "somestate"
                 }
             }
@@ -152,7 +160,9 @@ class SearchPlugin(Plugin):
         msg_body = dict(data=dict(post=dict(channel_id=event.body['channel_id'], root_id=event.body['callback_id'])))
         msg = Message(msg_body)
         try:
-            # log.info(event.body)
+            log.info(event.body)
+            idMessage = event.body['callback_id']
+            # log.info(idMessage)
             task = event.body.get('submission').get('task')
             # log.info(task)
             comment = event.body.get('submission').get('comment')
@@ -191,7 +201,8 @@ class SearchPlugin(Plugin):
                     'F4696': deadline,
                     'F4693': directorId,  # должно быть ID пользователя
                     'F4694': executorId,
-                    'F4697': 0
+                    'F4697': 0,
+                    'F5451': idMessage
                 }
                 sql_values = []
                 for key, value in values.items():
@@ -206,7 +217,14 @@ class SearchPlugin(Plugin):
                 sql = f"""INSERT INTO T218 ({', '.join(values.keys())}) VALUES ({', '.join(sql_values)})"""
                 cur.execute(sql)
                 con.commit()
-                self.driver.reply_to(msg, "Задача успешно создана в МПК24")
+                data = {'id': idMessage, 'message': f'{task}\nЗадача успешно создана в МПК24'}
+                response = requests.put(f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{idMessage}",
+                              json=data, headers=headers)
+                if response.status_code == 200:
+                    log.info('Message sent successfully.')
+                    log.info(response.json())
+                else:
+                    log.info(f'Failed to send message: {response.status_code}, {response.text}')
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
         log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
@@ -673,60 +691,60 @@ class SearchPlugin(Plugin):
 #         await asyncio.sleep(int(seconds))
 #         self.driver.reply_to(message, "Сделано!")
 #
-#     @listen_webhook("ping")
-#     @listen_webhook("pong")
-#     async def action_listener(self, event: WebHookEvent):
-#         """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
-#         либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
-#         if isinstance(event, ActionEvent):
-#             self.driver.respond_to_web(
-#                 event,
-#                 {
-#                     "update": {"message": event.context["text"], "props": {}},
-#                     "ephemeral_text": "Вы обновили этот пост!",
-#                 },
-#             )
-#         else:
-#             self.driver.create_post(
-#                 event.body["channel_id"], f"Webhook {event.webhook_id} сработал!"
-#             )
-#
-#     @listen_to("!button", direct_only=False)
-#     async def webhook_button(self, message: Message):
-#         """Создает кнопку, которая запускает веб-переход в зависимости от выбранного параметра."""
-#         self.driver.reply_to(
-#             message,
-#             "",
-#             props={
-#                 "attachments": [
-#                     {
-#                         "pretext": None,
-#                         "text": "Выбирите сами..",
-#                         "actions": [
-#                             {
-#                                 "id": "sendPing",
-#                                 "name": "Ping",
-#                                 "integration": {
-#                                     "url": f"{webhookHostUrl}:{webhook_host_port}/"
-#                                            "hooks/ping",
-#                                     "context": {
-#                                         "text": "ping webhook работает! :tada:",
-#                                     },
-#                                 },
-#                             },
-#                             {
-#                                 "id": "sendPong",
-#                                 "name": "Pong",
-#                                 "integration": {
-#                                     "url": f"{webhookHostUrl}:{webhook_host_port}/"
-#                                            "hooks/pong",
-#                                     "context": {
-#                                         "text": "pong webhook работает! :tada:",
-#                                     },
-#                                 },
-#                             },
-#                         ],
-#                     }
-#                 ]
-#             },
-#         )
+    @listen_webhook("ping")
+    @listen_webhook("pong")
+    async def action_listener(self, event: WebHookEvent):
+        """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
+        либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
+        if isinstance(event, ActionEvent):
+            self.driver.respond_to_web(
+                event,
+                {
+                    "update": {"message": event.context["text"], "props": {}},
+                    "ephemeral_text": "Вы обновили этот пост!",
+                },
+            )
+        else:
+            self.driver.create_post(
+                event.body["channel_id"], f"Webhook {event.webhook_id} сработал!"
+            )
+
+    @listen_to("!button", direct_only=False)
+    async def webhook_button(self, message: Message):
+        """Создает кнопку, которая запускает веб-переход в зависимости от выбранного параметра."""
+        self.driver.reply_to(
+            message,
+            "",
+            props={
+                "attachments": [
+                    {
+                        "pretext": None,
+                        "text": "Выбирите сами..",
+                        "actions": [
+                            {
+                                "id": "sendPing",
+                                "name": "Ping",
+                                "integration": {
+                                    "url": f"{webhookHostUrl}:{webhook_host_port}/"
+                                           "hooks/ping",
+                                    "context": {
+                                        "text": "ping webhook работает! :tada:",
+                                    },
+                                },
+                            },
+                            {
+                                "id": "sendPong",
+                                "name": "Pong",
+                                "integration": {
+                                    "url": f"{webhookHostUrl}:{webhook_host_port}/"
+                                           "hooks/pong",
+                                    "context": {
+                                        "text": "pong webhook работает! :tada:",
+                                    },
+                                },
+                            },
+                        ],
+                    }
+                ]
+            },
+        )
