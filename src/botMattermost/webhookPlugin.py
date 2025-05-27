@@ -1,4 +1,5 @@
 import datetime
+import json
 from mmpy_bot import Plugin, listen_webhook, WebHookEvent, ActionEvent, listen_to, Message
 from reminder import set_value_by_id
 import re
@@ -244,27 +245,23 @@ class webhookPlugin(Plugin):
                             "name": "Создать задачу",
                             "integration": {
                                 "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createTask",
-                                "context": dict(reply_id=message.reply_id, message=message.text),
+                                "context": message.body,
                             },
                         }
                     ]
                 }
             ]
         }
-        data = {'id': message.id, 'message': message.text, 'props': mes_json}
-        response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.id}",
-                                json=data, headers=config.headers)
-        if response.status_code == 200:
-            log.info('Message sent successfully.')
-            log.info(response.json())
-        else:
-            log.info(f'Failed to send message: {response.status_code}, {response.text}')
+        self.driver.reply_to(message, '', props=mes_json)
 
     @listen_webhook("createTask")
     async def createTask(self, event: WebHookEvent):
-        # log.info(event.body['user_id'])
-        msg_body = event.body['context']['reply_id']
+        # log.info(event.request_id)
+        # log.info(event.webhook_id)
+        # log.info(event.body)
+        msg_body = event.body.get('context')
         msg = Message(msg_body)
+        # log.info(msg.body)
         today = datetime.datetime.strftime(datetime.date.today(), '%d.%m.%y')
         # log.info(event.body['channel_id'])
         # with firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con:
@@ -286,12 +283,13 @@ class webhookPlugin(Plugin):
         #         log.info(json_result)
         #     except Exception as ex:
         #         log.info(f"НЕ удалось получить работы договора {ex}")
+        # log.info(json.dumps(event.body.get('context'), indent=4, sort_keys=True, ensure_ascii=False))
         if isinstance(event, ActionEvent):
             payload = {
                 "trigger_id": event.body['trigger_id'],
                 "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/addTask",
                 "dialog": {
-                    "callback_id": f'{msg_body}',
+                    "callback_id": json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False),
                     "title": "Добавление задачи",
                     'introduction_text': f"Постановщик задачи: {event.body['user_name']}",
                     "elements": [
@@ -300,7 +298,7 @@ class webhookPlugin(Plugin):
                             "placeholder": "Задача",
                             "name": "task",
                             "type": "text",
-                            'default': event.body['context']['message']
+                            'default': msg.text
                         },
                         {
                             "display_name": "Исполнитель",
@@ -349,11 +347,14 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("addTask")
     async def addTask(self, event: WebHookEvent):
-        msg_body = dict(data=dict(post=dict(channel_id=event.body['channel_id'], root_id=event.body['callback_id'])))
+        # log.info(event.body)
+        Dict = json.loads(event.body['callback_id'])
+        # log.info(Dict)
+        msg_body = Dict.get('context')
         msg = Message(msg_body)
+        # log.info(json.dumps(msg.body, indent=4, sort_keys=True, ensure_ascii=False))
         try:
-            log.info(event.body)
-            idMessage = event.body['callback_id']
+            idMessage = msg.reply_id
             # log.info(idMessage)
             task = event.body.get('submission').get('task')
             # log.info(task)
@@ -372,15 +373,17 @@ class webhookPlugin(Plugin):
                 cur = con.cursor()
                 sql = f"""SELECT ID FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"""
                 cur.execute(sql)
-                contractId = cur.fetchall()[0][0]
+                contractId = cur.fetchone()
                 # log.info(contractId)
+                if contractId is not None:
+                    contractId = contractId[0]
                 sql = f"""SELECT ID FROM T3 WHERE F16 = '{directorId}'"""
                 cur.execute(sql)
-                directorId = cur.fetchall()[0][0]
+                directorId = cur.fetchone()[0]
                 # log.info(directorId)
                 sql = f"""SELECT ID FROM T3 WHERE F16 = '{executorId}'"""
                 cur.execute(sql)
-                executorId = cur.fetchall()[0][0]
+                executorId = cur.fetchone()[0]
                 # log.info(executorId)
                 cur.execute(f'SELECT GEN_ID(GEN_T218, 1) FROM RDB$DATABASE')
                 ID = cur.fetchonemap().get('GEN_ID', None)
@@ -410,14 +413,15 @@ class webhookPlugin(Plugin):
                 sql = f"""INSERT INTO T218 ({', '.join(values.keys())}) VALUES ({', '.join(sql_values)})"""
                 cur.execute(sql)
                 con.commit()
-                data = {'id': idMessage, 'message': f'{task}\nЗадача успешно создана в МПК24'}
-                response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{idMessage}",
+                data = {'id': Dict.get('post_id'), 'message': f'Задача успешно создана в МПК24'}
+                response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
                                         json=data, headers=config.headers)
                 if response.status_code == 200:
                     log.info('Message sent successfully.')
                     log.info(response.json())
                 else:
                     log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                # log.info(json.dumps(Dict, indent=4, sort_keys=True, ensure_ascii=False))
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
         log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
