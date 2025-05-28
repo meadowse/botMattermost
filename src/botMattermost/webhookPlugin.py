@@ -431,18 +431,20 @@ class webhookPlugin(Plugin):
         Context = event.body.get('context')
         msg = Message(Context)
         try:
-            messageId = Context.get('messageId')
+            taskId = Context.get('taskId')
             with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                       password=config.password,
                                       charset=config.charset) as con):
                 cur = con.cursor()
-                sql = f"""UPDATE T218 SET F4697 = 1 WHERE F5451 = {messageId}"""
+                sql = f"""UPDATE T218 SET F4697 = 1 WHERE ID = {taskId}"""
                 cur.execute(sql)
                 con.commit()
-            channelId = getChannelId(messageId)
-            message = dict(data=dict(post=dict(channel_id=channelId, id=messageId)))
-            message = Message(message)
-            self.driver.reply_to(message, f"@{Context.get('executor')} выполнил задачу")
+            messageId = Context.get('messageId')
+            if messageId is not None:
+                channelId = getChannelId(messageId)
+                message = dict(data=dict(post=dict(channel_id=channelId, id=messageId)))
+                message = Message(message)
+                self.driver.reply_to(message, f"@{Context.get('executor')} выполнил задачу")
             self.driver.respond_to_web(event, {"update": {"message": 'задача выполнена', "props": {}},},)
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")

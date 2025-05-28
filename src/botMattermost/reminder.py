@@ -730,6 +730,7 @@ def send_task_reminders():
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
                                            "hooks/complete",
                                     "context": dict(
+                                        taskId=task_id,
                                         messageId=message_id,
                                         executor=executor
                                     )
