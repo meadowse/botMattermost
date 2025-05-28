@@ -63,8 +63,6 @@ schedule.every().wednesday.at("03:00").do(update_channels)
 schedule.every().thursday.at("03:00").do(update_channels)
 schedule.every().friday.at("03:00").do(update_channels)
 
-
-
 # emo_header = get_value_by_value('T298','F5648','Успех','F5534')[0]
 # print(f'{emo_header=}')
 
@@ -78,4 +76,3 @@ while True:
     print(f'{datetime.now()} Проверяем, есть ли запланированные задачи...')
     schedule.run_pending()  # Проверяем, есть ли запланированные задачи
     time.sleep(60)  # Пауза в 60 секунд
-

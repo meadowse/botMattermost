@@ -1,7 +1,11 @@
 import datetime
 import json
+from lib2to3.fixes.fix_input import context
+
 from mmpy_bot import Plugin, listen_webhook, WebHookEvent, ActionEvent, listen_to, Message
-from reminder import set_value_by_id
+from pyexpat.errors import messages
+
+from reminder import set_value_by_id, getChannelId
 import re
 from dataclasses import dataclass, asdict
 from typing import Optional
@@ -425,3 +429,25 @@ class webhookPlugin(Plugin):
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
         log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
+
+    @listen_webhook("complete")
+    async def complete(self, event: WebHookEvent):
+        Context = event.body.get('context')
+        msg = Message(Context)
+        try:
+            messageId = Context.get('messageId')
+            with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                      password=config.password,
+                                      charset=config.charset) as con):
+                cur = con.cursor()
+                sql = f"""UPDATE T218 SET F4697 = 1 WHERE F5451 = {messageId}"""
+                cur.execute(sql)
+                con.commit()
+            channelId = getChannelId(messageId)
+            message = dict(data=dict(post=dict(channel_id=channelId, id=messageId)))
+            message = Message(message)
+            self.driver.reply_to(message, f'@{Context.get('executor')} выполнил задачу')
+            self.driver.respond_to_web(event, {"update": {"message": 'задача выполнена', "props": {}},},)
+        except Exception as ex:
+            self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")
+        log.info(f"Веб-хук complete выполнен: {datetime.datetime.now()}")
