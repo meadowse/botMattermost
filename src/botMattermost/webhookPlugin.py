@@ -428,6 +428,7 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("complete")
     async def complete(self, event: WebHookEvent):
+        # log.info(event.body)
         Context = event.body.get('context')
         msg = Message(Context)
         try:
@@ -442,10 +443,11 @@ class webhookPlugin(Plugin):
             messageId = Context.get('messageId')
             if messageId is not None:
                 channelId = getChannelId(messageId)
-                message = dict(data=dict(post=dict(channel_id=channelId, id=messageId)))
+                message = dict(data=dict(post=dict(channel_id=channelId, root_id=messageId)))
                 message = Message(message)
                 self.driver.reply_to(message, f"@{Context.get('executor')} выполнил задачу")
-            self.driver.respond_to_web(event, {"update": {"message": 'задача выполнена', "props": {}},},)
+            self.driver.respond_to_web(event, {
+                "update": {"message": f"{Context.get('message')}\nзадача выполнена", "props": {}}, }, )
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")
         log.info(f"Веб-хук complete выполнен: {datetime.datetime.now()}")
