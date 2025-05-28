@@ -446,7 +446,7 @@ class webhookPlugin(Plugin):
             channelId = getChannelId(messageId)
             message = dict(data=dict(post=dict(channel_id=channelId, id=messageId)))
             message = Message(message)
-            self.driver.reply_to(message, f'@{Context.get('executor')} выполнил задачу')
+            self.driver.reply_to(message, f"@{Context.get('executor')} выполнил задачу")
             self.driver.respond_to_web(event, {"update": {"message": 'задача выполнена', "props": {}},},)
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")
