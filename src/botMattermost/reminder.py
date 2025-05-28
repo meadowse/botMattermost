@@ -725,7 +725,7 @@ def send_task_reminders():
                         "actions": [
                             {
                                 "id": "complete",
-                                "name": "Выполнено",
+                                "name": ":white_check_mark: Отметить как выполнено",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
                                            "hooks/complete",
