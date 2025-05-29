@@ -438,7 +438,7 @@ class webhookPlugin(Plugin):
                                       password=config.password,
                                       charset=config.charset) as con):
                 cur = con.cursor()
-                sql = f"""UPDATE T218 SET F4697 = 1, F4708 = {today} WHERE ID = {taskId}"""
+                sql = f"""UPDATE T218 SET F4697 = 1, F4708 = '{today}' WHERE ID = {taskId}"""
                 cur.execute(sql)
                 con.commit()
             messageId = Context.get('messageId')
