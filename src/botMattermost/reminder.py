@@ -10,12 +10,13 @@ from config import MATTERMOST_URL, headers, headers_oko, host, database, user, p
 def getChannelId(postId):
     url = f'{MATTERMOST_URL}/api/v4/posts/{postId}/thread'
     response = requests.get(url, headers=headers)
-    if response.status_code == 201:
+    if response.status_code == 200:
         print('Message sent to thread successfully.')
+        return json.loads(response.text).get('posts').get(f'{postId}').get('channel_id')
     else:
         print(
             f'Failed to send message to thread: {response.status_code}, {response.text}')
-    return json.loads(response.text).get('posts').get(f'{postId}').get('channel_id')
+        return None
 
 
 def send_message_to_thread(channel_id, root_id, message, props={}):
