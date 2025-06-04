@@ -377,13 +377,13 @@ class webhookPlugin(Plugin):
                 # log.info(contractId)
                 if contractId is not None:
                     contractId = contractId[0]
-                sql = f"""SELECT ID FROM T3 WHERE F16 = '{directorId}'"""
+                sql = f"""SELECT ID, F4932 FROM T3 WHERE F16 = '{directorId}'"""
                 cur.execute(sql)
                 directorData = cur.fetchone()
                 directorId = directorData[0]
                 director = directorData[1]
                 # log.info(directorData)
-                sql = f"""SELECT ID FROM T3 WHERE F16 = '{executorId}'"""
+                sql = f"""SELECT ID, F4932 FROM T3 WHERE F16 = '{executorId}'"""
                 cur.execute(sql)
                 executorData = cur.fetchone()
                 executorId = executorData[0]
