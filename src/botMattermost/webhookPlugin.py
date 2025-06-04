@@ -418,13 +418,13 @@ class webhookPlugin(Plugin):
                 cur.execute(sql)
                 con.commit()
                 data = {'id': Dict.get('post_id'), 'message': f"""** Добавлена Задача by @{director}**
-                Дата добавления: {dateStart}
-                Постановщик: @{director}
-                Исполнитель: @{executor}
-                Задача: {task}
-                Срок исполнения: {deadline}
-                Комментарий: {comment}
-                :large_yellow_circle: Задача ожидает исполнения..."""}
+Дата добавления: {dateStart}
+Постановщик: @{director}
+Исполнитель: @{executor}
+Задача: {task}
+Срок исполнения: {deadline}
+Комментарий: {comment}
+:large_yellow_circle: Задача ожидает исполнения..."""}
                 response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
                                         json=data, headers=config.headers)
                 if response.status_code == 200:
