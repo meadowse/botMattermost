@@ -379,12 +379,16 @@ class webhookPlugin(Plugin):
                     contractId = contractId[0]
                 sql = f"""SELECT ID FROM T3 WHERE F16 = '{directorId}'"""
                 cur.execute(sql)
-                directorId = cur.fetchone()[0]
-                # log.info(directorId)
+                directorData = cur.fetchone()
+                directorId = directorData[0]
+                director = directorData[1]
+                # log.info(directorData)
                 sql = f"""SELECT ID FROM T3 WHERE F16 = '{executorId}'"""
                 cur.execute(sql)
-                executorId = cur.fetchone()[0]
-                # log.info(executorId)
+                executorData = cur.fetchone()
+                executorId = executorData[0]
+                executor = executorData[1]
+                # log.info(executorData)
                 cur.execute(f'SELECT GEN_ID(GEN_T218, 1) FROM RDB$DATABASE')
                 ID = cur.fetchonemap().get('GEN_ID', None)
                 values = {
@@ -413,7 +417,14 @@ class webhookPlugin(Plugin):
                 sql = f"""INSERT INTO T218 ({', '.join(values.keys())}) VALUES ({', '.join(sql_values)})"""
                 cur.execute(sql)
                 con.commit()
-                data = {'id': Dict.get('post_id'), 'message': f'Задача успешно создана в МПК24'}
+                data = {'id': Dict.get('post_id'), 'message': f"""** Добавлена Задача by @{director}**
+                Дата добавления: {dateStart}
+                Постановщик: @{director}
+                Исполнитель: @{executor}
+                Задача: {task}
+                Срок исполнения: {deadline}
+                Комментарий: {comment}
+                :large_yellow_circle: Задача ожидает исполнения..."""}
                 response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
                                         json=data, headers=config.headers)
                 if response.status_code == 200:
