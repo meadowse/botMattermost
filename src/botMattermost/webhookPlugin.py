@@ -247,12 +247,22 @@ class webhookPlugin(Plugin):
                                 "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createTask",
                                 "context": message.body,
                             },
+                            'id': 'cancelTask',
+                            'name': 'Отмена',
+                            'integration': {
+                                'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cancelTask',
+                                'context': message.body,
+                            }
                         }
                     ]
                 }
             ]
         }
         self.driver.reply_to(message, '', props=mes_json)
+
+    @listen_webhook("cancelTask")
+    async def cancelTask(self, event: WebHookEvent):
+        self.driver.respond_to_web(event, {"update": {"message": '', "props": {}}, }, )
 
     @listen_webhook("createTask")
     async def createTask(self, event: WebHookEvent):
