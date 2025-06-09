@@ -246,7 +246,9 @@ class webhookPlugin(Plugin):
                             "integration": {
                                 "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createTask",
                                 "context": message.body,
-                            },
+                            }
+                        },
+                        {
                             'id': 'cancelTask',
                             'name': 'Отмена',
                             'integration': {
