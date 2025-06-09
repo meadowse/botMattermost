@@ -81,12 +81,30 @@ class SearchPlugin(Plugin):
                                 "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/createTask",
                                 "context": message.body,
                             },
+                        },
+                        {
+                            'id': 'cancelTask',
+                            'name': 'Отмена',
+                            'integration': {
+                                'url': f'{webhookLocalhostUrl}:{webhook_host_port}/hooks/cancelTask',
+                                'context': message.body,
+                            }
                         }
                     ]
                 }
             ]
         }
         self.driver.reply_to(message, '', props=mes_json)
+
+    @listen_webhook("cancelTask")
+    async def cancelTask(self, event: WebHookEvent):
+        log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+        response = requests.delete(f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{event.body.get('post_id')}", headers=headers)
+        if response.status_code == 200:
+            log.info('Message sent successfully.')
+            log.info(response.json())
+        else:
+            log.info(f'Failed to send message: {response.status_code}, {response.text}')
 
     @listen_webhook("createTask")
     async def createTask(self, event: WebHookEvent):

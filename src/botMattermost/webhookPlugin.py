@@ -264,7 +264,13 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("cancelTask")
     async def cancelTask(self, event: WebHookEvent):
-        self.driver.respond_to_web(event, {"update": {"message": '', "props": {}}, }, )
+        log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+        response = requests.delete(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{event.body.get('post_id')}", headers=config.headers)
+        if response.status_code == 200:
+            log.info('Message sent successfully.')
+            log.info(response.json())
+        else:
+            log.info(f'Failed to send message: {response.status_code}, {response.text}')
 
     @listen_webhook("createTask")
     async def createTask(self, event: WebHookEvent):
