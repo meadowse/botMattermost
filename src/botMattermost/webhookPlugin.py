@@ -132,7 +132,7 @@ class webhookPlugin(Plugin):
                 f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
-    @listen_to("Получено письмо на", re.IGNORECASE, direct_only=True)
+    @listen_to("Получено письмо на", re.IGNORECASE)
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
         managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
