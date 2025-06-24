@@ -15,6 +15,7 @@ import schedule
 import time
 from sys import platform
 
+
 # Конфигурация IMAP
 IMAP_SERVER = "imap.mail.ru"
 
@@ -23,6 +24,7 @@ DB_HOST = config.host
 DB_NAME = config.database
 DB_USER = config.user
 DB_PASSWORD = config.password
+
 headers = config.headers
 
 if platform == "linux" or platform == "linux2":
@@ -39,12 +41,21 @@ elif platform == "win32":
     UPLOAD_DIR_2_DB = "\\\\10.199.1.11\\РАБОТА\\10. Личные папки"
 
 ignored_senders = [
+    'a.bukreev@mosproektkompleks.ru',
+    'reports@yoomoney.ru',
     'notification@russianpost.ru',
     'moscow@officemag.ru',
     'no-reply@gosuslugi.ru',
     'noreply@sbis.ru',
     'rafaelbeauty@rafaelbeauty.ru',
     'no-reply.dns@dns-shop.ru',
+    '@fsk-lider.ru',
+    '@mail.gba-assistent-newclient.ru',
+    '@yoomoney.ru',
+    '@raww.ru',
+    '@account.2gis.com',
+    '@info.pobeda.aero',
+    '@i-tenders.ru',
     '@sender.ozon.ru',
     '@carcade.com',
     '@cdek.ru',
@@ -87,7 +98,27 @@ ignored_senders = [
     '@mkmlogistics.ru',
     '@argogeo.ru',
     '@iesoft.ru'
+    '@mail.instagram.com',
+    '@fkdnews.ru',
+    '@chek.pofd.ru',
+    '@telegraf.ru',
+    '@hhexpo.ru',
+    '@dreamgr.bitrix24.ru',
+    '@chipcart.shop',
+    '@taxi.yandex.ru',
+    '@rezinotekhnika-asbest.ru',
+    'infoprintpro@yandex.ru',
+    'notifications@avito.ru',
 ]
+
+
+def extract_invoice_number(text):
+    # Регулярное выражение для поиска номера счёта
+    match = re.search(r'сч[её]ту\s*№\s*(\d+-\d+)', text, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return None
+
 
 def shorten_filename(filename, max_length):
     # Разделяем имя файла и его расширение
@@ -120,7 +151,6 @@ def show_directory_contents(directory):
         print(f"Произошла ошибка: {e}")
 
 
-
 def upload_files_to_mattermost(files):
     uploaded_files = []
     for file in files:
@@ -149,7 +179,8 @@ def upload_files_to_mattermost(files):
         uploaded_files = uploaded_files[:10]
     return uploaded_files    
 
-def send_message_to_channel(channel_id, message, file_ids=None, props={}):
+
+def send_message_to_channel(channel_id, message, file_ids=None):
     url = f'{MATTERMOST_URL}/api/v4/posts'
     
     # Подготовка данных для сообщения
@@ -157,7 +188,7 @@ def send_message_to_channel(channel_id, message, file_ids=None, props={}):
         'channel_id': channel_id,
         'message': message
     }
-    payload.update(props)
+    
     if file_ids:
         payload['file_ids'] = file_ids
     
@@ -168,6 +199,20 @@ def send_message_to_channel(channel_id, message, file_ids=None, props={}):
         return response.json()
     else:
         print(f'Failed to send message: {response.status_code}, {response.text}')
+
+
+def send_message_to_thread(channel_id, root_id, message):
+    url = f'{MATTERMOST_URL}/api/v4/posts'
+    payload = {
+        'channel_id': channel_id,
+        'root_id': root_id,
+        'message': message
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    if response.status_code == 201:
+        print('Message sent to thread successfully.')
+    else:
+        print(f'Failed to send message to thread: {response.status_code}, {response.text}')
 
 
 def normalize_filename(filename):
@@ -187,6 +232,23 @@ def get_users_with_email_pass():
         print(f'{result=}')
         return(result)
     
+
+def get_thread_id_and_channdel_id(invoice_number):
+    with firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password, charset=config.charset) as con:
+        cur = con.cursor()
+        sql = f"""
+        SELECT 
+            T213.F4928 AS THREAD_ID,
+            T212.F4644 AS CHANNEL_ID
+        FROM T213
+        JOIN T212 ON T213.F4573 = T212.ID
+        WHERE T213.F5727 = '{invoice_number}'
+        """
+        cur.execute(sql)
+        result = cur.fetchone()
+        return result
+
+
 def get_max_msg_id_in_folder(folder_name, email):
     if folder_name == 'sent':
         email_field = 'F5033'
@@ -269,6 +331,7 @@ def extract_email(recipient_str):
     else:
         return None
 
+
 def normalize_whitespace(text):
     if text:
         # Удаление лишних пробелов
@@ -279,8 +342,10 @@ def normalize_whitespace(text):
     else:
         return None
 
+
 def imap_date(date):
     return date.strftime('%d-%b-%Y')
+
 
 def decode_payload(part):
     content_transfer_encoding = part.get("Content-Transfer-Encoding", "").lower()
@@ -298,6 +363,7 @@ def decode_payload(part):
         charset = "utf-8"
     
     return payload.decode(charset, errors="ignore")
+
 
 def get_letter_text_from_html(body):
     body = body.replace("<div><div>", "<div>").replace("</div></div>", "</div>")
@@ -328,6 +394,7 @@ def letter_type(part):
             return quopri.decodestring(part.get_payload()).decode('ISO-8859-1', errors='replace')
     else:  # все возможные типы: quoted-printable, base64, 7bit, 8bit и binary
         return part.get_payload()
+
 
 def get_letter_text(msg):
     def letter_type(part):
@@ -418,17 +485,18 @@ def get_letter_text(msg):
 
 #     return letter_text.replace("<", "").replace(">", "").replace("\xa0", " ")
 
+
 def decode_header_value(header_value):
-    if header_value is None:  # Проверка на None
-        return ""  # Возвращаем пустую строку, если header_value отсутствует
+    if header_value is None:
+        return ""
     parts = decode_header(header_value)
     decoded_string = ""
     for part, encoding in parts:
         if isinstance(part, bytes):
-            if encoding:
-                decoded_string += part.decode(encoding)
-            else:
-                decoded_string += part.decode('utf-8')
+            try:
+                decoded_string += part.decode(encoding.lower() if encoding else 'utf-8')
+            except (LookupError, UnicodeDecodeError, AttributeError):
+                decoded_string += part.decode('latin-1')
         else:
             decoded_string += part
     return decoded_string
@@ -438,23 +506,20 @@ def get_attachments(msg):
     attachments = list()
     for part in msg.walk():
         if (
-            part["Content-Type"]
-            and "name" in part["Content-Type"]
-            and part.get_content_disposition() == "attachment"
+            part.get_content_disposition() == "attachment"
+            and part.get_filename()  # Проверяет наличие имени файла
         ):
             filename = part.get_filename()
-            if filename:
-                # Decode the attachment name if needed
-                print(f'{filename=}')
-                filename = encode_att_names(filename)
+            if filename:  # На всякий случай (хотя get_filename() уже проверил)
+                filename = encode_att_names(filename)  # Декодируем, если нужно
                 attachments.append(filename)
-    return(attachments)
+    return attachments
 
 
 def save_attachments(msg, download_folder):
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
-    # attachments = list()
+
     for part in msg.walk():
         if part.get_content_maintype() == 'multipart':
             continue
@@ -466,14 +531,17 @@ def save_attachments(msg, download_folder):
             print(f'{file_name=}')
             filename_edit = encode_att_names(file_name)
             filename_edit = shorten_filename(filename_edit, 100)
-            filename_edit = filename_edit.replace('/','_')
+            filename_edit = filename_edit.replace('/', '_')
             print(f'{filename_edit=}')
 
             file_path = os.path.join(download_folder, filename_edit)
-            with open(file_path, 'wb') as f:
-                f.write(part.get_payload(decode=True))
-            print(f'Скачан файл {filename_edit}')
-
+            payload = part.get_payload(decode=True)
+            if payload is not None:  # Проверка на None
+                with open(file_path, 'wb') as f:
+                    f.write(payload)
+                print(f'Скачан файл {filename_edit}')
+            else:
+                print(f'Не удалось получить полезную нагрузку для {filename_edit}')
 
 
 def check_availability_email(email_id, folder_id_field, sender, subject):
@@ -487,6 +555,7 @@ def check_availability_email(email_id, folder_id_field, sender, subject):
     """)
     count = cur.fetchone()[0]
     return count
+
 
 def remove_list_formatting(text):
     lines = text.splitlines()  # Разделяем текст на строки
@@ -503,6 +572,7 @@ def remove_list_formatting(text):
     # Соединяем строки с помощью перевода строки
     return '\n'.join(cleaned_text)
 
+
 def insert_into_firebird(email_data):
     # try:
         print(f'****Записываем все в базу данных*****')
@@ -510,20 +580,31 @@ def insert_into_firebird(email_data):
         message_id = 'NULL'
         con = firebirdsql.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
         cur = con.cursor()
-        # Если это письмо в адрес почты с формами обратной связи, то формируем и отправляем сообщение в ММ
-        if (email_data["recipient"] == "fos@mosproektkompleks.ru" or email_data["recipient"] == "info@mosproektkompleks.ru" or email_data["recipient"] == "zakaz@mosproektkompleks.ru") and email_data["folder_name"] == 'inbox': 
+        #Если это письмо в адрес почты с формами обратной связи то формируем и отправляем сообщение в ММ
+        if (email_data["recipient"] == "fos@mosproektkompleks.ru" 
+            or email_data["recipient"] == "info@mosproektkompleks.ru" 
+            or email_data["recipient"] == "zakaz@mosproektkompleks.ru" 
+            or email_data["recipient"] == "moder@encom.ru"
+            or email_data["recipient"] == "info@encom.ru")\
+            and email_data["folder_name"] == 'inbox': 
             upload_files=[]
             message = f'=======================================\n'
-            message += f'Дата: {email_data["date"]}, Время: {email_data["time"]}\n'
+            message = f'Дата: {email_data["date"]}, Время: {email_data["time"]}\n'
             if email_data["recipient"] == "fos@mosproektkompleks.ru":
-                message += f'## Заполнена форма обратной связи: \n'
+                message += f'## Заполнена 📢 форма обратной связи 📢: \n'
             if email_data["recipient"] == "info@mosproektkompleks.ru":
-                message += f'## Получено письмо на info@mosproektkompleks.ru: \n'
+                message += f'## Получено письмо на ℹ️ info@mosproektkompleks.ru ℹ️: \n'
             if email_data["recipient"] == "zakaz@mosproektkompleks.ru":
-                message += f'## Получено письмо на zakaz@mosproektkompleks.ru: \n'
+                message += f'## Получено письмо на 🛒 zakaz@mosproektkompleks.ru 🛒: \n'
+            if email_data["sender"] == 'messages@avito.ru':
+                message += f'### Новое сообщение от :avito: АВИТО :avito:\n'
+            if email_data["recipient"] == 'info@encom.ru':
+                message += f'### 💚ЗАПРОС В ЭНКОМ💚\n'
+            if email_data["recipient"] == 'moder@encom.ru':
+                message += f'### ❇️ЗАПРОС ОБРАТНОЙ СВЯЗИ В ЭНКОМ❇️\n'
             message += f'### Отправитель: {email_data["sender"]}\n'
             message += f'### Тема: {email_data["subject"]}\n\
-            ### Сообщение: \n {email_data["body"]}* \n'
+### Сообщение: \n {email_data["body"]}* \n'
 
             if email_data["attachments"]:
                 k=0
@@ -540,77 +621,33 @@ def insert_into_firebird(email_data):
             message += f'======================================='
             print(f'Отправляем в канал Подготовка КП следующее сообщение: \n{message}')
             print(f'{upload_files=}')
-            managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov', ] # список тех, кто может удалять и менять статус КП
-            props = {
-                "props": {
-                    "attachments": [
-                        {
-                            "actions": [
-                                {
-                                    "id": "delete",
-                                    "name": "❌Удалить",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                               "hooks/delete",
-                                        "context": dict(
-                                            text="❌Удалить",
-                                            managerNicknames=managerNicknames,
-                                        )
-                                    },
-                                },
-                                {
-                                    "id": "nonStandard",
-                                    "name": "⛔Неквал",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                               "hooks/nonStandard",
-                                        "context": dict(
-                                            text="⛔Неквал",
-                                            message=message,
-                                            managerNicknames=managerNicknames,
-                                        )
-                                    },
-                                },
-                                {
-                                    "id": "createLead",
-                                    "name": "🚩Создать Лида",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                               "hooks/createLead",
-                                        "context": dict(
-                                            text="🚩Создать Лида",
-                                            message=message,
-                                            managerNicknames=managerNicknames,
-                                        )
-                                    },
-                                },
-                                {
-                                    "id": "createKP",
-                                    "name": "💲Создать КП",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                               "hooks/createKP",
-                                        "context": dict(
-                                            text="💲Создать КП",
-                                            message=message,
-                                            managerNicknames=managerNicknames,
-                                        )
-                                    },
-                                },
-                            ],
-                        }
-                    ]
-                }
-            }
             if not any(email_data["sender"].endswith(domain) for domain in ignored_senders):
                 if email_data["sender"] != 'op@profi.ru':
                     # Отправка сообщения в канал "Подготвка КП"
-                    message_id = send_message_to_channel('kbcyc66jbtbcubs93h43nf19dy', message, upload_files_to_mattermost(upload_files), props)['id']
+                    message_id = send_message_to_channel('kbcyc66jbtbcubs93h43nf19dy',message[:3990], upload_files_to_mattermost(upload_files))['id']
                 else:
                     # Отправка сообщения в канал "Профи.ру"
-                    message_id = send_message_to_channel('ncmxtc7ndfgtm8y1seq9zskijc', message, upload_files_to_mattermost(upload_files))['id']
+                    message_id = send_message_to_channel('ncmxtc7ndfgtm8y1seq9zskijc',message[:3990], upload_files_to_mattermost(upload_files))['id']
+            # Проверяем если письмо от Юмани 
+            # if email_data["sender"] == 'ecommerce@yoomoney.ru' and email_data["subject"].startswith("Вы получили оплату"):
+            if email_data["sender"] == 'ecommerce@yoomoney.ru':
+                send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', f'МЫ ПОЛУЧИЛИ ОПЛАТУ')
+                message = '## Получена 💰оплата💰 от физ. лица через ЮКассу! \n '
+                message += f'### Тема: {email_data["subject"]}\n\
+### Сообщение: \n {email_data["body"]}* \n'
+                if extract_invoice_number(email_data["subject"]):
+                    try:
+                        thread_id, channel_id = get_thread_id_and_channdel_id(extract_invoice_number(email_data["subject"]))
+                        send_message_to_thread(channel_id, thread_id, 'Счёт оплачен через Юкассу')
+                    except Exception as ex:
+                        send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', f'Не удалось найти тред для отправки сообщения')
+                # Отправка сообщения в канал "💸Оплаты"
+                send_message_to_channel('de31x3w9cbg55c3hdbf13mgeir',message[:3990])['id']
+            else:
+                pass
 
-
+        
+        
         print(f'Записываем в базу данных письмо {email_data["folder_name"]} {email_data["sender"]} {email_data["recipient"]} {email_data["subject"]} {email_data["email_id"]}')
         cur.execute('SELECT GEN_ID(GEN_T254, 1) FROM RDB$DATABASE')
         email_record_id = cur.fetchone()[0]
@@ -653,6 +690,7 @@ def insert_into_firebird(email_data):
     #     send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', f'Ошибка в обработке emails в функции insert_into_firebird(emails): {email_data["sender"]=} {email_data["recipient"]=} {ex=}')
     #     print(f'Ошибка в обработке emails в функции insert_into_firebird(emails): {ex}')
 
+
 def fetch_emails():
     # try:
         for user in get_users_with_email_pass():
@@ -682,7 +720,7 @@ def fetch_emails():
                     print(f'__________________ОБРАБАТЫВАЕМ {folder_read_name}!___почты {EMAIL_ACCOUNT}_____________________')
                     mail.select(folder_name)
                     if get_max_msg_id_in_folder(folder_read_name, EMAIL_ACCOUNT) == None:
-                        ID_LAST_MSG = 0
+                        ID_LAST_MSG = 3
                     else:
                         ID_LAST_MSG = int(get_max_msg_id_in_folder(folder_read_name, EMAIL_ACCOUNT))
                     print(f'у аккаунта {EMAIL_ACCOUNT} в папке {folder_read_name} последний id письма:{ID_LAST_MSG=}')
@@ -691,13 +729,14 @@ def fetch_emails():
                     search_criterion = f'UID {ID_LAST_MSG - 2}:* SINCE "{date_criterion}"'
                     # Выполняем поиск писем
                     status, messages = mail.uid('SEARCH', None, search_criterion)
-                    print(status, messages)
+                    print(f'{status=}, {messages=}')
                     email_ids = messages[0].split()
 
                     # try:
                     for email_id in email_ids:
                         print(f'{email_id=}')
-                        status, message_data = mail.uid('FETCH', email_id, '(RFC822)')
+                        # status, message_data = mail.uid('FETCH', email_id, '(RFC822)') #закомментировал строчку чтобы письма делать снова НЕПРОЧИТАННЫМИ!
+                        status, message_data = mail.uid('FETCH', email_id, '(BODY.PEEK[])')
                         raw_email = message_data[0][1]
                         msg = email.message_from_bytes(raw_email)
                         # print(f'msg={msg}')
@@ -756,10 +795,10 @@ def fetch_emails():
                             else:
                                 download_folder=''
                             insert_into_firebird(email_data)
-                            print(f'Пробуем сделать письмо НЕпрочитанным с id {email_id}')
-                            mail.store(email_id, '-FLAGS', '(\Seen)')
-                            print(f'Пробуем сделать письмо НЕпрочитанным с id {email_data["email_id"]}')
-                            mail.store(email_data["email_id"], '-FLAGS', '(\\Seen)')
+                            # print(f'Пробуем сделать письмо НЕпрочитанным с id {email_id}')
+                            # mail.store(email_id, '-FLAGS', '(\Seen)')
+                            # print(f'Пробуем сделать письмо НЕпрочитанным с id {email_data["email_id"]}')
+                            # mail.store(email_data["email_id"], '-FLAGS', '(\\Seen)')
                         else:
                             print(f'Такое письмо уже есть в базе: {email_data}')
                     # except Exception as ex:
@@ -793,17 +832,15 @@ def job():
     print(f'Ждём одну минуту')
 
 
-
 # Запустить задачу первый раз и потом каждую минуту
 send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', f'Запуск emails_2_db')
 job()
 schedule.every(1).minutes.do(job)
 
+
 while True:
     schedule.run_pending()
     time.sleep(1)
-
-
 
 # send_message_to_channel('kbcyc66jbtbcubs93h43nf19dy', 'test', file_ids=['qmx5t9gemjf7bn75uzxe6hyqje'])
 # print(upload_files_to_mattermost(['\\\\10.199.1.11\\РАБОТА\\10. Личные папки\\ФОС\\inbox\\3\\Счет № 1602 по договору 1988 от 19.07.2024[1].docx'],channel_id='kbcyc66jbtbcubs93h43nf19dy'))

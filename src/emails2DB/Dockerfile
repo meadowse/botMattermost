@@ -1,24 +1,25 @@
-# Используем базовый образ Python
-FROM python:3.12.0
+# Build a virtualenv using the appropriate Debian release
+# * Install python3-venv for the built-in Python3 venv module (not installed by default)
+# * Install gcc libpython3-dev to compile C Python modules
+# * In the virtualenv: Update pip setuputils and wheel to support building new packages
+FROM debian:12-slim AS build
+RUN apt-get update && \
+    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel
 
-# Установка Firebird Client Library
-RUN apt-get update && apt-get install -y firebird-dev -y tzdata
+# Build the virtualenv as a separate step: Only re-execute this step when requirements.txt changes
+FROM build AS build-venv
+COPY requirements.txt /requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
 
-# Устанавливаем часовой пояс
-ENV TZ=Europe/Moscow
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# Устанавливаем рабочую директорию в контейнере
-WORKDIR /app
-
-# Копируем файл вашего приложения в контейнер
+# Copy the virtualenv into a distroless image
+FROM meadowse56/distroless-python3-debian12
+COPY --from=build-venv /venv /venv
 COPY . /app
+WORKDIR /app
+ENV TZ=Europe/Moscow
+ENTRYPOINT ["/venv/bin/python3", "main.py"]
 
-# Устанавливаем зависимости, если таковые имеются
-
-# Если у вас есть файл requirements.txt, используйте его
-COPY requirements.txt /app
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Заменяем "python" на конкретный путь к исполняемому файлу Python
-CMD ["/usr/local/bin/python", "main.py"]
+#RUN apt-get update && apt-get install -y firebird-dev -y tzdata
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

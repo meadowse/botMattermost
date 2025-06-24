@@ -1,6 +1,6 @@
 services:
   reminder:
-    image: reminder
+    image: emails2db
     build:
       context: .
       dockerfile: ./Dockerfile

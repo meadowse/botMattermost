@@ -1,4 +1,5 @@
 import datetime
+from datetime import datetime
 import json
 from mmpy_bot import Plugin, listen_webhook, WebHookEvent, ActionEvent, listen_to, Message
 from reminder import set_value_by_id, getChannelId
@@ -10,11 +11,13 @@ import requests
 import firebirdsql
 from mmpy_bot.plugins.base import log
 
+
 @dataclass
 class Field:
     title: str
     value: str
     short: bool = True
+
 
 @dataclass
 class Section:
@@ -31,12 +34,11 @@ class Section:
             res['text'] = str(self.text)
         return res
 
+
 class webhookPlugin(Plugin):
     @listen_webhook("underApproval")
     @listen_webhook("couldNotGetInTouch")
     async def Cancel(self, event: WebHookEvent):
-        """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
-        либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
         if event.body.get('user_name') in event.context.get("managerNicknames"):
             if isinstance(event, ActionEvent):
                 self.driver.respond_to_web(
@@ -59,8 +61,6 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("cancel")
     async def cancel(self, event: WebHookEvent):
-        """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
-        либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
         if event.body.get('user_name') in event.context.get("managerNicknames"):
             set_value_by_id('T213', 'F4570', 'Аннулирован', event.context.get("doc_id"))
             set_value_by_id('T213', 'F4666', 'NULL', event.context.get("doc_id"))
@@ -87,8 +87,6 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("failure")
     async def failure(self, event: WebHookEvent):
-        """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
-        либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
         if event.body.get('user_name') == event.context.get("manager_nickname"):
             set_value_by_id('T209', 'F4491', 'Провал', event.context.get("kp_id"))
             set_value_by_id('T209', 'F4529', 'NULL', event.context.get("kp_id"))
@@ -115,8 +113,6 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("delete")
     async def delete(self, event: WebHookEvent):
-        """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
-        либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
         if event.body.get('user_name') in event.context.get("managerNicknames"):
             if isinstance(event, ActionEvent):
                 self.driver.respond_to_web(
@@ -136,102 +132,121 @@ class webhookPlugin(Plugin):
                 f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
-    @listen_webhook("nonStandard")
-    async def nonStandard(self, event: WebHookEvent):
-        """Прослушивает веб-перехватчики «ping» и «pong» и либо обновляет исходный пост,
-        либо отправляет сообщение на канал, чтобы указать, что веб-перехватчик работает."""
-        if event.body.get('user_name') in event.context.get("managerNicknames"):
-            if isinstance(event, ActionEvent):
-                print(event)
-                # self.driver.reply_to(message, '', props={
-                #     "attachments": [
-                #         {
-                #             "text": f"⛔Неквал от {event.body.get('user_name')}",
-                #         }
-                #     ]
-                # })
-                # self.driver.respond_to_web(
-                #     event,
-                #     {
-                #         "update": {"message": event.context.get("message") + "\n@" + event.body.get(
-                #             'user_name') + " ответил " + event.context.get("text"), "props": {}},
-                #     },
-                # )
-            else:
-                self.driver.create_post(
-                    event.body["channel_id"],
-                    f"Webhook {event.webhook_id} сработал!"
-                )
-        else:
-            self.driver.create_post(
-                event.body["channel_id"],
-                f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
-            )
+    @listen_to("Получено письмо на", re.IGNORECASE, direct_only=True)
+    async def addButtons(self, message: Message):
+        # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
+        managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
+                            'b.musaev',
+                            ]  # список тех, кто может удалять и менять статус КП
+        props = {
+            "attachments": [
+                {
+                    "actions": [
+                        {
+                            "id": "delete",
+                            "name": "❌Удалить",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                                       "hooks/delete",
+                                "context": dict(
+                                    message=message.body,
+                                    managerNicknames=managerNicknames,
+                                )
+                            },
+                        },
+                        {
+                            "id": "reactTo",
+                            "name": "⛔Неквал",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                                       "hooks/reactTo",
+                                "context": dict(
+                                    message=message.body,
+                                    managerNicknames=managerNicknames,
+                                )
+                            },
+                        },
+                        {
+                            "id": "createLead",
+                            "name": "🚩Создать Лида",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                                       "hooks/createLead",
+                                "context": dict(
+                                    message=message.body,
+                                    managerNicknames=managerNicknames,
+                                )
+                            },
+                        },
+                        {
+                            "id": "createKP",
+                            "name": "💲Создать КП",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                                       "hooks/createKP",
+                                "context": dict(
+                                    message=message.body,
+                                    managerNicknames=managerNicknames,
+                                )
+                            },
+                        },
+                    ],
+                }
+            ]
+        }
+        self.driver.reply_to(message, '', props=props)
 
-    # @listen_to("^(.)*$", re.IGNORECASE)
-    # async def hello(self, message: Message, status):
-    #     managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
-    #                         'b.musaev', ]  # список тех, кто может удалять и менять статус КП
-    #     props = {
-    #         "attachments": [
-    #             {
-    #                 "actions": [
-    #                     {
-    #                         "id": "delete",
-    #                         "name": "❌Удалить",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
-    #                                    "hooks/delete",
-    #                             "context": dict(
-    #                                 text="❌Удалить",
-    #                                 managerNicknames=managerNicknames,
-    #                             )
-    #                         },
-    #                     },
-    #                     {
-    #                         "id": "nonStandard",
-    #                         "name": "⛔Неквал",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
-    #                                    "hooks/nonStandard",
-    #                             "context": dict(
-    #                                 text="⛔Неквал",
-    #                                 # message=message,
-    #                                 managerNicknames=managerNicknames,
-    #                             )
-    #                         },
-    #                     },
-    #                     {
-    #                         "id": "createLead",
-    #                         "name": "🚩Создать Лида",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
-    #                                    "hooks/createLead",
-    #                             "context": dict(
-    #                                 text="🚩Создать Лида",
-    #                                 # message=message,
-    #                                 managerNicknames=managerNicknames,
-    #                             )
-    #                         },
-    #                     },
-    #                     {
-    #                         "id": "createKP",
-    #                         "name": "💲Создать КП",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhookHostUrl}/"
-    #                                    "hooks/createKP",
-    #                             "context": dict(
-    #                                 text="💲Создать КП",
-    #                                 # message=message,
-    #                                 managerNicknames=managerNicknames,
-    #                             )
-    #                         },
-    #                     },
-    #                 ],
-    #             }
-    #         ]
-    #     }
-    #     self.driver.reply_to(message, '', props=props)
+    @listen_webhook("delete")
+    async def delete(self, event: WebHookEvent):
+        # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        User = event.body.get('user_name')
+        if event.body.get('user_name') in context.get('managerNicknames'):
+            response = requests.delete(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
+                                       headers=config.headers)
+            if response.status_code == 200:
+                log.info('Message sent successfully.')
+                log.info(response.json())
+            else:
+                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+        else:
+            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+
+    @listen_webhook("reactTo")
+    async def reactTo(self, event: WebHookEvent):
+        # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        User = event.body.get('user_name')
+        if User in context.get('managerNicknames'):
+            self.driver.react_to(message, "no_entry")
+        else:
+            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+
+    @listen_webhook("createKP")
+    async def createKP(self, event: WebHookEvent):
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        User = event.body.get('user_name')
+        ID = event.body.get('user_id')
+        if User in context.get('managerNicknames'):
+            add_KP(message.reply_id, ID)
+            self.driver.reply_to(message, f"@{User} создал КП")
+        else:
+            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+
+    @listen_webhook("createLead")
+    async def createLead(self, event: WebHookEvent):
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        User = event.body.get('user_name')
+        ID = event.body.get('user_id')
+        if User in context.get('managerNicknames'):
+            add_LEAD(message.reply_id, ID)
+            self.driver.reply_to(message, f"@{User} создал Лида")
+        else:
+            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
     @listen_to("задач", re.IGNORECASE)
     async def hello(self, message: Message):
@@ -481,3 +496,106 @@ class webhookPlugin(Plugin):
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")
         log.info(f"Веб-хук complete выполнен: {datetime.datetime.now()}")
+
+
+def add_LEAD(message_id, user_db_id):
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_time = datetime.now().strftime('%H:%M:%S')
+    current_year = datetime.now().year
+    message_link = config.MATTERMOST_URL + '/mosproektkompleks/pl/' + message_id
+    with firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password, charset=config.charset) as con:
+        cur = con.cursor()
+        Sql = f"""SELECT ID FROM T3 WHERE F16 = '{user_db_id}'"""
+        cur.execute(Sql)
+        userData = cur.fetchone()
+        userId = userData[0]
+        sql_count_of_lead = f"""
+        SELECT COUNT(*) 
+        FROM T208 
+        WHERE T208.F4452 = {current_year};
+        """
+        cur.execute(sql_count_of_lead)
+        count_of_lead = cur.fetchall()[0][0]
+        print(count_of_lead)
+        lead_num = str(current_year) + '-' + str(int(count_of_lead) + 1) + 'Л'
+        path_of_lead = 'N:\\1. Лиды\\'+str(current_year)+'\\'+lead_num
+        print(lead_num)
+        print(path_of_lead)
+        cur.execute(f'SELECT GEN_ID(GEN_T208, 1) FROM RDB$DATABASE')
+        ID = cur.fetchonemap().get('GEN_ID', None)
+        values = {
+            'id': ID,
+            'F4452': current_year, #год добавления КП
+            'F4442': current_date, #дата добавления КП
+            'F4443': current_time, #время добавления КП
+            'F4450': lead_num,
+            'F4458': message_link,
+            'F4446': userId,
+            'F5006': path_of_lead,
+            'F4477': 'напоминать Исп.',
+            'F4964': message_id,
+            }
+        sql = f"""
+        INSERT INTO T208 (
+        {', '.join(values.keys())}
+        ) VALUES (
+        {', '.join(f"'{value}'" for value in values.values())}
+        )
+        """
+        cur.execute(sql)
+        con.commit()
+        con.close()
+
+
+def add_KP(message_id, user_db_id):
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_year = datetime.now().year
+    message_link = config.MATTERMOST_URL + '/mosproektkompleks/pl/' + message_id
+    with firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password,
+                             charset=config.charset) as con:
+        cur = con.cursor()
+        Sql = f"""SELECT ID FROM T3 WHERE F16 = '{user_db_id}'"""
+        cur.execute(Sql)
+        userData = cur.fetchone()
+        userId = userData[0]
+        sql_count_of_kp = f"""
+        SELECT COUNT(*) 
+        FROM T209 
+        WHERE T209.F4500 = {current_year};
+        """
+        cur.execute(sql_count_of_kp)
+        count_of_kp = cur.fetchall()[0][0]
+        print(count_of_kp)
+        kp_num = str(current_year) + '-' + str(int(count_of_kp) + 1) + 'КП'
+        path_of_kp = 'N:\\2. КП\\' + str(current_year) + '\\' + kp_num
+        print(kp_num)
+        print(path_of_kp)
+        cur.execute(f'SELECT GEN_ID(GEN_T209, 1) FROM RDB$DATABASE')
+        Id = cur.fetchonemap().get('GEN_ID', None)
+        values = {
+            'id': Id,
+            'F4490': Id,
+            'F4500': current_year,  # год добавления КП
+            'F4511': current_date,  # дата добавления КП
+            'F4485': current_date,  # дата КП
+            'F4480': kp_num,
+            'F4491': 'В процессе подготовки',
+            'F4505': message_link,
+            'F4496': userId,
+            'F4527': path_of_kp,
+            'F4527': 'напоминать Исп.',
+            'F4512': message_id,
+            'F4483': 'выполнение работ по ... (далее Объект(ы))',  # предмет работ
+            'F4484': 0,  # цена работ
+            'F4488': 0,  # срок работ
+        }
+        sql = f"""
+        INSERT INTO T209 (
+        {', '.join(values.keys())}
+        ) VALUES (
+        {', '.join(f"'{value}'" for value in values.values())}
+        )
+        """
+        cur.execute(sql)
+        con.commit()
+        con.close()
