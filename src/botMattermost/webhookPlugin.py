@@ -192,7 +192,7 @@ class webhookPlugin(Plugin):
                 }
             ]
         }
-        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy':
+        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("delete")

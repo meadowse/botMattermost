@@ -45,7 +45,7 @@ class Section:
 class SearchPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def hello(self, message: Message):
-        # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
+        log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
         managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
                             'b.musaev',
                             ]  # список тех, кто может удалять и менять статус КП
@@ -105,7 +105,7 @@ class SearchPlugin(Plugin):
                 }
             ]
         }
-        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy':
+        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("delete")
