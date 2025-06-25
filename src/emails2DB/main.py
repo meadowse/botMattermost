@@ -180,20 +180,17 @@ def upload_files_to_mattermost(files):
     return uploaded_files    
 
 
-def send_message_to_channel(channel_id, message, file_ids=None):
+def send_message_to_channel(channel_id, message, file_ids=None, props={}):
     url = f'{MATTERMOST_URL}/api/v4/posts'
-    
     # Подготовка данных для сообщения
     payload = {
         'channel_id': channel_id,
         'message': message
     }
-    
+    payload.update(props)
     if file_ids:
         payload['file_ids'] = file_ids
-    
     response = requests.post(url, json=payload, headers=headers) #, verify=False)
-    
     if response.status_code == 201:
         print('Message sent successfully.')
         return response.json()
@@ -624,10 +621,69 @@ def insert_into_firebird(email_data):
             if not any(email_data["sender"].endswith(domain) for domain in ignored_senders):
                 if email_data["sender"] != 'op@profi.ru':
                     # Отправка сообщения в канал "Подготвка КП"
-                    message_id = send_message_to_channel('kbcyc66jbtbcubs93h43nf19dy',message[:3990], upload_files_to_mattermost(upload_files))['id']
+                    managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
+                                        'b.musaev',
+                                        ]  # список тех, кто может удалять и менять статус КП
+                    props = {
+                        "attachments": [
+                            {
+                                "actions": [
+                                    {
+                                        "id": "delete",
+                                        "name": "❌Удалить",
+                                        "integration": {
+                                            "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
+                                                   "hooks/delete",
+                                            "context": dict(
+                                                # message=message.body,
+                                                managerNicknames=managerNicknames,
+                                            )
+                                        },
+                                    },
+                                    {
+                                        "id": "reactTo",
+                                        "name": "⛔Неквал",
+                                        "integration": {
+                                            "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
+                                                   "hooks/reactTo",
+                                            "context": dict(
+                                                # message=message.body,
+                                                managerNicknames=managerNicknames,
+                                            )
+                                        },
+                                    },
+                                    {
+                                        "id": "createLead",
+                                        "name": "🚩Создать Лида",
+                                        "integration": {
+                                            "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
+                                                   "hooks/createLead",
+                                            "context": dict(
+                                                # message=message.body,
+                                                managerNicknames=managerNicknames,
+                                            )
+                                        },
+                                    },
+                                    {
+                                        "id": "createKP",
+                                        "name": "💲Создать КП",
+                                        "integration": {
+                                            "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
+                                                   "hooks/createKP",
+                                            "context": dict(
+                                                # message=message.body,
+                                                managerNicknames=managerNicknames,
+                                            )
+                                        },
+                                    },
+                                ],
+                            }
+                        ]
+                    }
+                    message_id = send_message_to_channel('kbcyc66jbtbcubs93h43nf19dy', message[:3990], upload_files_to_mattermost(upload_files), props=props)['id']
                 else:
                     # Отправка сообщения в канал "Профи.ру"
-                    message_id = send_message_to_channel('ncmxtc7ndfgtm8y1seq9zskijc',message[:3990], upload_files_to_mattermost(upload_files))['id']
+                    message_id = send_message_to_channel('ncmxtc7ndfgtm8y1seq9zskijc', message[:3990], upload_files_to_mattermost(upload_files))['id']
             # Проверяем если письмо от Юмани 
             # if email_data["sender"] == 'ecommerce@yoomoney.ru' and email_data["subject"].startswith("Вы получили оплату"):
             if email_data["sender"] == 'ecommerce@yoomoney.ru':

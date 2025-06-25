@@ -43,7 +43,7 @@ class Section:
         return res
 
 class SearchPlugin(Plugin):
-    @listen_to("Получено письмо на", re.IGNORECASE, direct_only=True)
+    @listen_to("[А-Яа-яЁё]*")
     async def hello(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
         managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
@@ -105,7 +105,8 @@ class SearchPlugin(Plugin):
                 }
             ]
         }
-        self.driver.reply_to(message, '', props=props)
+        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy':
+            self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("delete")
     async def delete(self, event: WebHookEvent):
@@ -244,7 +245,7 @@ def add_KP(message_id, user_db_id):
             'F4505': message_link,
             'F4496': userId,
             'F4527': path_of_kp,
-            'F4527': 'напоминать Исп.',
+            'F4528': 'напоминать Исп.',
             'F4512': message_id,
             'F4483': 'выполнение работ по ... (далее Объект(ы))',  # предмет работ
             'F4484': 0,  # цена работ

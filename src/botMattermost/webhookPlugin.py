@@ -132,10 +132,10 @@ class webhookPlugin(Plugin):
                 f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
-    @listen_to("Получено письмо на", re.IGNORECASE)
+    @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
+        managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov',
                             'b.musaev',
                             ]  # список тех, кто может удалять и менять статус КП
         props = {
@@ -174,7 +174,6 @@ class webhookPlugin(Plugin):
                                        "hooks/createLead",
                                 "context": dict(
                                     message=message.body,
-                                    managerNicknames=managerNicknames,
                                 )
                             },
                         },
@@ -186,7 +185,6 @@ class webhookPlugin(Plugin):
                                        "hooks/createKP",
                                 "context": dict(
                                     message=message.body,
-                                    managerNicknames=managerNicknames,
                                 )
                             },
                         },
@@ -194,7 +192,8 @@ class webhookPlugin(Plugin):
                 }
             ]
         }
-        self.driver.reply_to(message, '', props=props)
+        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy':
+            self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("delete")
     async def delete(self, event: WebHookEvent):
@@ -230,11 +229,8 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
-        if User in context.get('managerNicknames'):
-            add_KP(message.reply_id, ID)
-            self.driver.reply_to(message, f"@{User} создал КП")
-        else:
-            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+        add_KP(message.reply_id, ID)
+        self.driver.reply_to(message, f"@{User} создал КП")
 
     @listen_webhook("createLead")
     async def createLead(self, event: WebHookEvent):
@@ -242,11 +238,8 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
-        if User in context.get('managerNicknames'):
-            add_LEAD(message.reply_id, ID)
-            self.driver.reply_to(message, f"@{User} создал Лида")
-        else:
-            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+        add_LEAD(message.reply_id, ID)
+        self.driver.reply_to(message, f"@{User} создал Лида")
 
     @listen_to("задач", re.IGNORECASE)
     async def hello(self, message: Message):
@@ -583,7 +576,7 @@ def add_KP(message_id, user_db_id):
             'F4505': message_link,
             'F4496': userId,
             'F4527': path_of_kp,
-            'F4527': 'напоминать Исп.',
+            'F4528': 'напоминать Исп.',
             'F4512': message_id,
             'F4483': 'выполнение работ по ... (далее Объект(ы))',  # предмет работ
             'F4484': 0,  # цена работ
