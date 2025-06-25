@@ -135,7 +135,7 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov',
+        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov',
                             'b.musaev',
                             ]  # список тех, кто может удалять и менять статус КП
         props = {
