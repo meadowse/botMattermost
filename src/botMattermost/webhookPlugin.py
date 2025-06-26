@@ -1,5 +1,4 @@
 import datetime
-from datetime import datetime
 import json
 from mmpy_bot import Plugin, listen_webhook, WebHookEvent, ActionEvent, listen_to, Message
 from reminder import set_value_by_id, getChannelId
@@ -492,9 +491,9 @@ class webhookPlugin(Plugin):
 
 
 def add_LEAD(message_id, user_db_id):
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    current_time = datetime.now().strftime('%H:%M:%S')
-    current_year = datetime.now().year
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_time = datetime.datetime.now().strftime('%H:%M:%S')
+    current_year = datetime.datetime.now().year
     message_link = config.MATTERMOST_URL + '/mosproektkompleks/pl/' + message_id
     with firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password, charset=config.charset) as con:
         cur = con.cursor()
@@ -541,8 +540,8 @@ def add_LEAD(message_id, user_db_id):
 
 
 def add_KP(message_id, user_db_id):
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    current_year = datetime.now().year
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_year = datetime.datetime.now().year
     message_link = config.MATTERMOST_URL + '/mosproektkompleks/pl/' + message_id
     with firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password,
                              charset=config.charset) as con:
