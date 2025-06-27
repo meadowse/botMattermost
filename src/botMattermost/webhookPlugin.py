@@ -141,18 +141,18 @@ class webhookPlugin(Plugin):
             "attachments": [
                 {
                     "actions": [
-                        {
-                            "id": "delete",
-                            "name": "❌Удалить",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                       "hooks/delete",
-                                "context": dict(
-                                    message=message.body,
-                                    managerNicknames=managerNicknames,
-                                )
-                            },
-                        },
+                        # {
+                        #     "id": "delete",
+                        #     "name": "❌Удалить",
+                        #     "integration": {
+                        #         "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                        #                "hooks/delete",
+                        #         "context": dict(
+                        #             message=message.body,
+                        #             managerNicknames=managerNicknames,
+                        #         )
+                        #     },
+                        # },
                         {
                             "id": "reactTo",
                             "name": "⛔Неквал",
@@ -194,8 +194,8 @@ class webhookPlugin(Plugin):
         if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
-    @listen_webhook("delete")
-    async def delete(self, event: WebHookEvent):
+    @listen_webhook("reactTo")
+    async def reactTo(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
         context = event.body.get('context')
         message = Message(context.get('message'))
@@ -211,16 +211,16 @@ class webhookPlugin(Plugin):
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
-    @listen_webhook("reactTo")
-    async def reactTo(self, event: WebHookEvent):
-        # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
-        context = event.body.get('context')
-        message = Message(context.get('message'))
-        User = event.body.get('user_name')
-        if User in context.get('managerNicknames'):
-            self.driver.react_to(message, "no_entry")
-        else:
-            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+    # @listen_webhook("reactTo")
+    # async def reactTo(self, event: WebHookEvent):
+    #     # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+    #     context = event.body.get('context')
+    #     message = Message(context.get('message'))
+    #     User = event.body.get('user_name')
+    #     if User in context.get('managerNicknames'):
+    #         self.driver.react_to(message, "no_entry")
+    #     else:
+    #         self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
     @listen_webhook("createKP")
     async def createKP(self, event: WebHookEvent):
