@@ -12,7 +12,6 @@ from mmpy_bot.plugins.base import log
 import firebirdsql
 import mattermostautodriver
 import datetime
-from datetime import datetime
 import asyncio
 from pyexpat.errors import messages
 from config import confluence_url, host, database, user, password, charset, headers, \
@@ -44,27 +43,15 @@ class Section:
 
 class SearchPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
-    async def hello(self, message: Message):
-        log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        managerNicknames = ['a.bukreev', 'a.lavruhin', 'm.ulanov', 's.volkov',
+    async def addButtons(self, message: Message):
+        # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
+        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov',
                             'b.musaev',
                             ]  # список тех, кто может удалять и менять статус КП
         props = {
             "attachments": [
                 {
                     "actions": [
-                        {
-                            "id": "delete",
-                            "name": "❌Удалить",
-                            "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
-                                       "hooks/delete",
-                                "context": dict(
-                                    message=message.body,
-                                    managerNicknames=managerNicknames,
-                                )
-                            },
-                        },
                         {
                             "id": "reactTo",
                             "name": "⛔Неквал",
@@ -85,7 +72,6 @@ class SearchPlugin(Plugin):
                                        "hooks/createLead",
                                 "context": dict(
                                     message=message.body,
-                                    managerNicknames=managerNicknames,
                                 )
                             },
                         },
@@ -97,7 +83,6 @@ class SearchPlugin(Plugin):
                                        "hooks/createKP",
                                 "context": dict(
                                     message=message.body,
-                                    managerNicknames=managerNicknames,
                                 )
                             },
                         },
@@ -105,24 +90,9 @@ class SearchPlugin(Plugin):
                 }
             ]
         }
-        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
+        if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get('data').get('post').get(
+                'reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
-
-    @listen_webhook("delete")
-    async def delete(self, event: WebHookEvent):
-        # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
-        context = event.body.get('context')
-        message = Message(context.get('message'))
-        User = event.body.get('user_name')
-        if event.body.get('user_name') in context.get('managerNicknames'):
-            response = requests.delete(f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{message.reply_id}", headers=headers)
-            if response.status_code == 200:
-                log.info('Message sent successfully.')
-                log.info(response.json())
-            else:
-                log.info(f'Failed to send message: {response.status_code}, {response.text}')
-        else:
-            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
     @listen_webhook("reactTo")
     async def reactTo(self, event: WebHookEvent):
@@ -130,8 +100,15 @@ class SearchPlugin(Plugin):
         context = event.body.get('context')
         message = Message(context.get('message'))
         User = event.body.get('user_name')
-        if User in context.get('managerNicknames'):
-            self.driver.react_to(message, "no_entry")
+        if event.body.get('user_name') in context.get('managerNicknames'):
+            response = requests.delete(
+                f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
+                headers=headers)
+            if response.status_code == 200:
+                log.info('Message sent successfully.')
+                log.info(response.json())
+            else:
+                log.info(f'Failed to send message: {response.status_code}, {response.text}')
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
@@ -141,11 +118,8 @@ class SearchPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
-        if User in context.get('managerNicknames'):
-            add_KP(message.reply_id, ID)
-            self.driver.reply_to(message, f"@{User} создал КП")
-        else:
-            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+        num = add_KP(message.reply_id, ID)
+        self.driver.respond_to_web(event, {"update": {"message": f"@{User} создал запись о КП № {num}", "props": {}, }, }, )
 
     @listen_webhook("createLead")
     async def createLead(self, event: WebHookEvent):
@@ -153,17 +127,15 @@ class SearchPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
-        if User in context.get('managerNicknames'):
-            add_LEAD(message.reply_id, ID)
-            self.driver.reply_to(message, f"@{User} создал Лида")
-        else:
-            self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
+        num = add_LEAD(message.reply_id, ID)
+        self.driver.respond_to_web(event,
+                                   {"update": {"message": f"@{User} создал запись о Лиде № {num}", "props": {}, }, }, )
 
 
 def add_LEAD(message_id, user_db_id):
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    current_time = datetime.now().strftime('%H:%M:%S')
-    current_year = datetime.now().year
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_time = datetime.datetime.now().strftime('%H:%M:%S')
+    current_year = datetime.datetime.now().year
     message_link = MATTERMOST_URL + '/mosproektkompleks/pl/' + message_id
     with firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con:
         cur = con.cursor()
@@ -207,11 +179,12 @@ def add_LEAD(message_id, user_db_id):
         cur.execute(sql)
         con.commit()
         con.close()
+        return lead_num
 
 
 def add_KP(message_id, user_db_id):
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    current_year = datetime.now().year
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_year = datetime.datetime.now().year
     message_link = MATTERMOST_URL + '/mosproektkompleks/pl/' + message_id
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
@@ -250,6 +223,7 @@ def add_KP(message_id, user_db_id):
             'F4483': 'выполнение работ по ... (далее Объект(ы))',  # предмет работ
             'F4484': 0,  # цена работ
             'F4488': 0,  # срок работ
+            'F4503': 1,
         }
         sql = f"""
         INSERT INTO T209 (
@@ -261,6 +235,7 @@ def add_KP(message_id, user_db_id):
         cur.execute(sql)
         con.commit()
         con.close()
+        return kp_num
 
 #     @listen_webhook("complete")
 #     async def complete(self, event: WebHookEvent):

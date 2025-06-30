@@ -141,18 +141,6 @@ class webhookPlugin(Plugin):
             "attachments": [
                 {
                     "actions": [
-                        # {
-                        #     "id": "delete",
-                        #     "name": "❌Удалить",
-                        #     "integration": {
-                        #         "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                        #                "hooks/delete",
-                        #         "context": dict(
-                        #             message=message.body,
-                        #             managerNicknames=managerNicknames,
-                        #         )
-                        #     },
-                        # },
                         {
                             "id": "reactTo",
                             "name": "⛔Неквал",
@@ -191,9 +179,9 @@ class webhookPlugin(Plugin):
                 }
             ]
         }
-        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
+        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get(
+                'reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
-
 
     @listen_webhook("reactTo")
     async def reactTo(self, event: WebHookEvent):
@@ -202,8 +190,9 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         if event.body.get('user_name') in context.get('managerNicknames'):
-            response = requests.delete(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
-                                       headers=config.headers)
+            response = requests.delete(
+                f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
+                headers=config.headers)
             if response.status_code == 200:
                 log.info('Message sent successfully.')
                 log.info(response.json())
@@ -212,17 +201,6 @@ class webhookPlugin(Plugin):
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
-    # @listen_webhook("reactTo")
-    # async def reactTo(self, event: WebHookEvent):
-    #     # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
-    #     context = event.body.get('context')
-    #     message = Message(context.get('message'))
-    #     User = event.body.get('user_name')
-    #     if User in context.get('managerNicknames'):
-    #         self.driver.react_to(message, "no_entry")
-    #     else:
-    #         self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
-
     @listen_webhook("createKP")
     async def createKP(self, event: WebHookEvent):
         context = event.body.get('context')
@@ -230,7 +208,8 @@ class webhookPlugin(Plugin):
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
         num = add_KP(message.reply_id, ID)
-        self.driver.reply_to(message, f"@{User} создал запись о КП № {num}")
+        self.driver.respond_to_web(event,
+                                   {"update": {"message": f"@{User} создал запись о КП № {num}", "props": {}, }, }, )
 
     @listen_webhook("createLead")
     async def createLead(self, event: WebHookEvent):
@@ -239,7 +218,8 @@ class webhookPlugin(Plugin):
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
         num = add_LEAD(message.reply_id, ID)
-        self.driver.reply_to(message, f"@{User} создал запись о Лиде № {num}")
+        self.driver.respond_to_web(event,
+                                   {"update": {"message": f"@{User} создал запись о Лиде № {num}", "props": {}, }, }, )
 
     @listen_to("задач", re.IGNORECASE)
     async def hello(self, message: Message):
