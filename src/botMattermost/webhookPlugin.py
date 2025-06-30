@@ -194,6 +194,7 @@ class webhookPlugin(Plugin):
         if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
+
     @listen_webhook("reactTo")
     async def reactTo(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
@@ -228,8 +229,8 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
-        add_KP(message.reply_id, ID)
-        self.driver.reply_to(message, f"@{User} создал КП")
+        num = add_KP(message.reply_id, ID)
+        self.driver.reply_to(message, f"@{User} создал запись о КП № {num}")
 
     @listen_webhook("createLead")
     async def createLead(self, event: WebHookEvent):
@@ -237,8 +238,8 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         ID = event.body.get('user_id')
-        add_LEAD(message.reply_id, ID)
-        self.driver.reply_to(message, f"@{User} создал Лида")
+        num = add_LEAD(message.reply_id, ID)
+        self.driver.reply_to(message, f"@{User} создал запись о Лиде № {num}")
 
     @listen_to("задач", re.IGNORECASE)
     async def hello(self, message: Message):
@@ -537,6 +538,7 @@ def add_LEAD(message_id, user_db_id):
         cur.execute(sql)
         con.commit()
         con.close()
+        return lead_num
 
 
 def add_KP(message_id, user_db_id):
@@ -580,6 +582,7 @@ def add_KP(message_id, user_db_id):
             'F4483': 'выполнение работ по ... (далее Объект(ы))',  # предмет работ
             'F4484': 0,  # цена работ
             'F4488': 0,  # срок работ
+            'F4503': 1,
         }
         sql = f"""
         INSERT INTO T209 (
@@ -591,3 +594,4 @@ def add_KP(message_id, user_db_id):
         cur.execute(sql)
         con.commit()
         con.close()
+        return kp_num
