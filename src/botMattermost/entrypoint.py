@@ -17,8 +17,8 @@ bot = Bot(
         # LOG_LEVEL = logging.DEBUG,
     ),
     plugins=[ExamplePlugin(), WebHookExample(),
-             webhookPlugin(),
-             # SearchPlugin(),
+             # webhookPlugin(),
+             SearchPlugin(),
              ],  # Add your own plugins here.
 )
 bot.run()

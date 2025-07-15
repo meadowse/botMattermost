@@ -701,9 +701,6 @@ def insert_into_firebird(email_data):
                 send_message_to_channel('de31x3w9cbg55c3hdbf13mgeir',message[:3990])['id']
             else:
                 pass
-
-        
-        
         print(f'Записываем в базу данных письмо {email_data["folder_name"]} {email_data["sender"]} {email_data["recipient"]} {email_data["subject"]} {email_data["email_id"]}')
         cur.execute('SELECT GEN_ID(GEN_T254, 1) FROM RDB$DATABASE')
         email_record_id = cur.fetchone()[0]
