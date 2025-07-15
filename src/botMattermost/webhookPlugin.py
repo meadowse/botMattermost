@@ -110,27 +110,6 @@ class webhookPlugin(Plugin):
                 f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
-    @listen_webhook("delete")
-    async def delete(self, event: WebHookEvent):
-        if event.body.get('user_name') in event.context.get("managerNicknames"):
-            if isinstance(event, ActionEvent):
-                self.driver.respond_to_web(
-                    event,
-                    {
-                        "update": {"message": '', "props": {}},
-                    },
-                )
-            else:
-                self.driver.create_post(
-                    event.body["channel_id"],
-                    f"Webhook {event.webhook_id} сработал!"
-                )
-        else:
-            self.driver.create_post(
-                event.body["channel_id"],
-                f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
-            )
-
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
@@ -195,13 +174,13 @@ class webhookPlugin(Plugin):
                 'reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
-    @listen_webhook("reactTo")
-    async def reactTo(self, event: WebHookEvent):
+    @listen_webhook("delete")
+    async def delete(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
         context = event.body.get('context')
         message = Message(context.get('message'))
         User = event.body.get('user_name')
-        if event.body.get('user_name') in context.get('managerNicknames'):
+        if User in context.get('managerNicknames'):
             response = requests.delete(
                 f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
                 headers=config.headers)
@@ -221,6 +200,8 @@ class webhookPlugin(Plugin):
         User = event.body.get('user_name')
         if User in context.get('managerNicknames'):
             self.driver.react_to(message, "no_entry")
+            self.driver.respond_to_web(event, {
+                "update": {"message": "", "props": {}, }, }, )
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
@@ -551,10 +532,12 @@ def add_KP(message_id, user_db_id):
     with firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password,
                              charset=config.charset) as con:
         cur = con.cursor()
-        Sql = f"""SELECT ID FROM T3 WHERE F16 = '{user_db_id}'"""
+        Sql = f"""SELECT ID, F4887SRC, F4887DEST FROM T3 WHERE F16 = '{user_db_id}'"""
         cur.execute(Sql)
         userData = cur.fetchone()
         userId = userData[0]
+        src = userData[1]
+        dest = userData[2]
         sql_count_of_kp = f"""
         SELECT COUNT(*) 
         FROM T209 
@@ -586,6 +569,8 @@ def add_KP(message_id, user_db_id):
             'F4484': 0,  # цена работ
             'F4488': 0,  # срок работ
             'F4503': 1,
+            'F4888SRC': src,
+            'F4888DEST': dest,
         }
         sql = f"""
         INSERT INTO T209 (

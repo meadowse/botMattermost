@@ -113,7 +113,14 @@ class SearchPlugin(Plugin):
         message = Message(context.get('message'))
         User = event.body.get('user_name')
         if User in context.get('managerNicknames'):
-            self.driver.react_to(message, "no_entry")
+            response = requests.delete(
+                f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
+                headers=headers)
+            if response.status_code == 200:
+                log.info('Message sent successfully.')
+                log.info(response.json())
+            else:
+                log.info(f'Failed to send message: {response.status_code}, {response.text}')
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
@@ -125,6 +132,8 @@ class SearchPlugin(Plugin):
         User = event.body.get('user_name')
         if User in context.get('managerNicknames'):
             self.driver.react_to(message, "no_entry")
+            self.driver.respond_to_web(event, {
+                "update": {"message": "", "props": {}, }, }, )
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
@@ -205,10 +214,12 @@ def add_KP(message_id, user_db_id):
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
         cur = con.cursor()
-        Sql = f"""SELECT ID FROM T3 WHERE F16 = '{user_db_id}'"""
+        Sql = f"""SELECT ID, F4887SRC, F4887DEST FROM T3 WHERE F16 = '{user_db_id}'"""
         cur.execute(Sql)
         userData = cur.fetchone()
         userId = userData[0]
+        src = userData[1]
+        dest = userData[2]
         sql_count_of_kp = f"""
         SELECT COUNT(*) 
         FROM T209 
@@ -240,6 +251,8 @@ def add_KP(message_id, user_db_id):
             'F4484': 0,  # цена работ
             'F4488': 0,  # срок работ
             'F4503': 1,
+            'F4888SRC': src,
+            'F4888DEST': dest,
         }
         sql = f"""
         INSERT INTO T209 (
