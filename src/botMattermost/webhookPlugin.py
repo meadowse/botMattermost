@@ -170,7 +170,7 @@ class webhookPlugin(Plugin):
                 }
             ]
         }
-        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get(
+        if (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get(
                 'reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
