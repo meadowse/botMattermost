@@ -2,7 +2,7 @@ import schedule
 from datetime import datetime
 import time
 from __init__ import send_and_update_kp_reminders, send_and_update_docs_reminders, send_empty_priority_reminders, \
-    update_channels, send_task_reminders, send_dr_reminders, send_message_to_channel, isp_srok_reminder, check_all_employee_and_add_oko_id
+    update_channels, send_task_reminders, send_dr_reminders, send_message_to_channel, isp_srok_reminder, check_all_employee_and_add_oko_id, set_vacation_statuses_for_all_users
 
 # Запланируем выполнение функции по напоминаниям о задачах в 07:00 по будням
 schedule.every().monday.at("07:00").do(check_all_employee_and_add_oko_id)
@@ -10,6 +10,16 @@ schedule.every().tuesday.at("07:00").do(check_all_employee_and_add_oko_id)
 schedule.every().wednesday.at("07:00").do(check_all_employee_and_add_oko_id)
 schedule.every().thursday.at("07:00").do(check_all_employee_and_add_oko_id)
 schedule.every().friday.at("07:00").do(check_all_employee_and_add_oko_id)
+
+
+# Запланируем выполнение функции по установки отпускных статусов сотрудникам в 08:50 кажжый день
+schedule.every().monday.at("08:50").do(set_vacation_statuses_for_all_users)
+schedule.every().tuesday.at("08:50").do(set_vacation_statuses_for_all_users)
+schedule.every().wednesday.at("08:50").do(set_vacation_statuses_for_all_users)
+schedule.every().thursday.at("08:50").do(set_vacation_statuses_for_all_users)
+schedule.every().friday.at("08:50").do(set_vacation_statuses_for_all_users)
+schedule.every().saturday.at("08:50").do(set_vacation_statuses_for_all_users)
+schedule.every().sunday.at("08:50").do(set_vacation_statuses_for_all_users)
 
 
 # Запланируем выполнение функции по напоминаниям о задачах в 09:10 по будням
@@ -70,7 +80,7 @@ send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', f'{datetime.now()} Про�
 print(f'{datetime.now()} Процесс reminder запущен')
 # send_dr_reminders()
 # update_channels()
-# send_task_reminders()
+# set_vacation_statuses_for_all_users()
 
 while True:
     print(f'{datetime.now()} Проверяем, есть ли запланированные задачи...')

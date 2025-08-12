@@ -1,5 +1,5 @@
 import firebirdsql
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 import time
 import json
 import requests
@@ -318,6 +318,24 @@ def get_today_dr_reminders():
         (EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM CURRENT_DATE) AND 
         EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM CURRENT_DATE)) AND
         T3.F5383 = 1;
+        """
+        cur.execute(sql)
+        result = cur.fetchall()
+        return result
+    
+def get_tomorrow_dr_reminders():
+    with firebirdsql.connect(host=host, database=database, user=user, password=password,
+                           charset=charset) as con:
+        cur = con.cursor()
+        sql = """ 
+        SELECT 
+        T3.F4886 AS NAME,
+        T3.F18 AS DR_DATE 
+        FROM T3 
+        WHERE 
+        EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM DATEADD(1 DAY TO CURRENT_DATE)) AND 
+        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM DATEADD(1 DAY TO CURRENT_DATE)) AND
+        T3.F5383 = 1
         """
         cur.execute(sql)
         result = cur.fetchall()
@@ -766,6 +784,16 @@ def send_dr_reminders():
         send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', message)  # отправка БАИ
         send_message_to_channel('emsxtq83jpnq8yp6gpcqfiw7ke', message)  # отправка Римме Хасановой
         send_message_to_channel('f3d7amu5m7nqdcc4k34j48p61h', message)  # отправка Екатерине Малашенко
+    
+    for j in get_tomorrow_dr_reminders():
+        name = j[0]
+        dr_date = j[1]
+        age = datetime.now().year - dr_date.year
+        message = f"Напоминание о ЗАВТРАШНЕМ дне рождении: {name}, {age_in_years(age)}, день рождения {dr_date}."
+        print(message)
+        send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', message)  # отправка БАИ
+        send_message_to_channel('emsxtq83jpnq8yp6gpcqfiw7ke', message)  # отправка Римме Хасановой
+
 
 
 # ============================================= Напоминания о скором завершении испытательного срока ===================================
@@ -847,6 +875,138 @@ def check_all_employee_and_add_oko_id():
         oko_channel_id = create_oko_channel(user_mm_id)
         set_value_at_id('T3', 'F5649', oko_channel_id, user_db_id)
         print(f'{user_name}, mm_id = {user_mm_id}, oko_channel_id = {oko_channel_id}')
+
+
+
+# ============================================= Добавление отпускных статусов =======================================================
+
+def get_vacations_from_db():
+    with firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con:
+        cur = con.cursor()
+        sql = """
+        SELECT 
+            T302.ID,
+            T302.F5579 AS VACATION_START,
+            T302.F5581 AS VACATION_END,
+            T302.F5574 AS USER_DB_ID,
+            T3.F16 AS USER_MM_ID,
+            T3.F4886 AS USER_FI
+        FROM T302
+        JOIN T3 ON T302.F5574 = T3.ID
+        WHERE CURRENT_DATE BETWEEN T302.F5579 AND T302.F5581
+            AND T302.F5577 = 'отпуск'
+        """           
+        cur.execute(sql)
+        return cur.fetchall()
+
+def days_until_vacation_end(end_date_str):
+    """Возвращает количество дней до окончания отпуска"""
+    try:
+        # Преобразуем строку в объект datetime
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+        # Получаем текущую дату
+        current_date = datetime.now()
+        # Вычисляем разницу в днях
+        delta = end_date - current_date
+        
+        # Возвращаем количество оставшихся дней
+        return delta.days
+    except ValueError as e:
+        print(f"Ошибка формата даты: {e}")
+        return None
+
+def convert_to_expires_at(date_str):
+    """Преобразует дату в формате YYYY-MM-DD в формат expires_at (ISO 8601)"""
+    try:
+        # Преобразуем строку в объект datetime
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        # Устанавливаем время на 23:59:00
+        date_obj = date_obj.replace(hour=23, minute=59, second=0)
+        # Форматируем в ISO 8601 с добавлением Z для обозначения UTC
+        expires_at = date_obj.isoformat() + "Z"
+        return expires_at
+    except ValueError as e:
+        print(f"Ошибка формата даты: {e}")
+        return None
+
+
+def set_vacation_status(user_id, end_date):
+    """Устанавливает временный статус отпуска"""
+    print(user_id)
+    print(end_date)
+    print(type(end_date))
+
+    # Преобразуем строку в объект datetime
+    date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+    # Форматируем обратно в нужный формат
+    formatted_date = date_obj.strftime("%d.%m.%Y")
+    print(formatted_date)
+
+    # Преобразование даты
+    try:
+        end_datetime = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59)
+        print(end_datetime)
+        duration = end_datetime.isoformat() + "Z"
+    except ValueError as e:
+        print(f"Ошибка формата даты: {e}")
+        return False
+
+    # Установка базового статуса
+    status_url = f"{MATTERMOST_URL}/api/v4/users/{user_id}/status"
+    try:
+        response = requests.put(
+            status_url,
+            headers=headers,
+            json={"user_id": user_id, "status": "away", },
+            timeout=10
+        )
+        response.raise_for_status()
+    except Exception as e:
+        print(f"Ошибка установки статуса: {e}")
+        return False
+
+    # Установка кастомного статуса
+    custom_status_url = f"{MATTERMOST_URL}/api/v4/users/{user_id}/status/custom"
+    try:
+        response = requests.put(
+            custom_status_url,
+            headers=headers,
+            json={
+                # "emoji": "airplane",
+                "emoji": "palm_tree",
+                "text": f"В отпуске до {formatted_date}г. (еще дней: {days_until_vacation_end(end_date)})",
+                "expires_at": convert_to_expires_at(end_date)
+            },
+            timeout=10
+        )
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        print(f"Ошибка установки кастомного статуса: {e}")
+        return False
+
+def set_vacation_statuses_for_all_users():
+    vacations = get_vacations_from_db()  # Получаем список активных отпусков
+    i=0
+    for vacation in vacations:
+        i += 1
+        print(f'{i}. {vacation=}')
+        user_id = vacation[4]  # Или другое поле, содержащее ID пользователя в Mattermost
+        start_date = vacation[1]  # Дата начала отпуска
+        end_date = vacation[2]  # Дата окончания отпуска
+        user_fi = vacation[5]  # Дата окончания отпуска
+        # print(f'{i}. {user_fi},{user_id}, {end_date}')
+        
+        # Преобразуем дату в нужный формат (если требуется)
+        if isinstance(end_date, date):
+            end_date = end_date.strftime('%Y-%m-%d')
+        
+        # Устанавливаем статус
+        success = set_vacation_status(user_id, end_date)
+        if success:
+            print(f"Статус установлен для пользователя {user_fi}, отпуск до {end_date}")
+        else:
+            print(f"Ошибка установки статуса для пользователя {user_fi}")
 
 # Тестирование
 # update_channel('1qetkt4rbjdbpqp6berdh5638r', 'header4', 'purpose4')
