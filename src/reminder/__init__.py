@@ -737,30 +737,30 @@ def send_task_reminders():
             message += f'адрес в договоре: {dog_address}'
         if message_id is not None:
             message += f', [обсуждение задачи](https://mm-mpk.ru/mosproektkompleks/pl/{message_id})'
-        props = {
-            "props": {
-                "attachments": [
-                    {
-                        "actions": [
-                            {
-                                "id": "complete",
-                                "name": ":white_check_mark: Отметить как выполнено",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/complete",
-                                    "context": dict(
-                                        message=message,
-                                        taskId=task_id,
-                                        messageId=message_id,
-                                        executor=executor
-                                    )
-                                },
-                            }
-                        ]
-                    }
-                ]
-            }
-        }
+        # props = {
+        #     "props": {
+        #         "attachments": [
+        #             {
+        #                 "actions": [
+        #                     {
+        #                         "id": "complete",
+        #                         "name": ":white_check_mark: Отметить как выполнено",
+        #                         "integration": {
+        #                             "url": f"{webhook_host_url}:{webhook_host_port}/"
+        #                                    "hooks/complete",
+        #                             "context": dict(
+        #                                 message=message,
+        #                                 taskId=task_id,
+        #                                 messageId=message_id,
+        #                                 executor=executor
+        #                             )
+        #                         },
+        #                     }
+        #                 ]
+        #             }
+        #         ]
+        #     }
+        # }
         send_message_to_oko(oko_channel_id, message, props=props)
 
 
