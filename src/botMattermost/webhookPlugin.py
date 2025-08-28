@@ -412,7 +412,8 @@ class webhookPlugin(Plugin):
                     'F4693': directorId,  # должно быть ID пользователя
                     'F4694': executorId,
                     'F4697': 0,
-                    'F5451': idMessage
+                    'F5451': idMessage,
+                    'F5872': 'Новая',
                 }
                 sql_values = []
                 for key, value in values.items():
