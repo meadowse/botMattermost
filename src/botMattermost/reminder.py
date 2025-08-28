@@ -1,6 +1,6 @@
 import firebirdsql
-from datetime import timedelta, datetime
-import time
+from datetime import timedelta, datetime, date
+import time as time_module
 import json
 import requests
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
@@ -324,6 +324,25 @@ def get_today_dr_reminders():
         return result
 
 
+def get_tomorrow_dr_reminders():
+    with firebirdsql.connect(host=host, database=database, user=user, password=password,
+                             charset=charset) as con:
+        cur = con.cursor()
+        sql = """ 
+        SELECT 
+        T3.F4886 AS NAME,
+        T3.F18 AS DR_DATE 
+        FROM T3 
+        WHERE 
+        EXTRACT(MONTH FROM T3.F18) = EXTRACT(MONTH FROM DATEADD(1 DAY TO CURRENT_DATE)) AND 
+        EXTRACT(DAY FROM T3.F18) = EXTRACT(DAY FROM DATEADD(1 DAY TO CURRENT_DATE)) AND
+        T3.F5383 = 1
+        """
+        cur.execute(sql)
+        result = cur.fetchall()
+        return result
+
+
 def get_today_isp_srok_reminders():
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
@@ -450,7 +469,7 @@ def send_and_update_docs_reminders():
         elif message_id is None and channel_id:
             try:
                 send_message_to_channel(
-channel_id, remind_message, None, props)
+                    channel_id, remind_message, None, props)
                 # Обновляем дату напоминания
                 set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
             except Exception as ex:
@@ -527,7 +546,7 @@ def update_channel(channel_id, header, purpose):
         print('Channel header and purpose updated successfully.')
 
         # Ждем немного, чтобы сообщения успели появиться
-        time.sleep(3)  # Можно настроить время ожидания
+        time_module.sleep(3)  # Можно настроить время ожидания
 
         # Получаем последние сообщения из канала
         posts_url = f'{MATTERMOST_URL}/api/v4/channels/{channel_id}/posts'
@@ -620,9 +639,9 @@ def update_channels():
         print(
             f'{k}, {dog_id=}, {stadia=}, {address=}, {dog_num=}, {subject=}, {price=}, {avans=}, {oplacheno=}, {channel_id=}')
         print(f'-------')
-        print(f'{type(price)=}')
-        print(f'{type(avans)=}')
-        print(f'{type(oplacheno)=}')
+        # print(f'{type(price)=}')
+        # print(f'{type(avans)=}')
+        # print(f'{type(oplacheno)=}')
 
         # формируем header
 
@@ -719,7 +738,7 @@ def send_task_reminders():
             message += f'адрес в договоре: {dog_address}'
         if message_id is not None:
             message += f', [обсуждение задачи](https://mm-mpk.ru/mosproektkompleks/pl/{message_id})'
-        # props = {
+        props = {
         #     "props": {
         #         "attachments": [
         #             {
@@ -742,7 +761,7 @@ def send_task_reminders():
         #             }
         #         ]
         #     }
-        # }
+        }
         send_message_to_oko(oko_channel_id, message, props=props)
 
 
@@ -766,6 +785,15 @@ def send_dr_reminders():
         send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', message)  # отправка БАИ
         send_message_to_channel('emsxtq83jpnq8yp6gpcqfiw7ke', message)  # отправка Римме Хасановой
         send_message_to_channel('f3d7amu5m7nqdcc4k34j48p61h', message)  # отправка Екатерине Малашенко
+
+    for j in get_tomorrow_dr_reminders():
+        name = j[0]
+        dr_date = j[1]
+        age = datetime.now().year - dr_date.year
+        message = f"Напоминание о ЗАВТРАШНЕМ дне рождении: {name}, {age_in_years(age)}, день рождения {dr_date}."
+        print(message)
+        send_message_to_channel('nf5xrwor7fgwpfoorp1g97ufoy', message)  # отправка БАИ
+        send_message_to_channel('emsxtq83jpnq8yp6gpcqfiw7ke', message)  # отправка Римме Хасановой
 
 
 # ============================================= Напоминания о скором завершении испытательного срока ===================================
@@ -848,5 +876,435 @@ def check_all_employee_and_add_oko_id():
         set_value_at_id('T3', 'F5649', oko_channel_id, user_db_id)
         print(f'{user_name}, mm_id = {user_mm_id}, oko_channel_id = {oko_channel_id}')
 
-# Тестирование
-# update_channel('1qetkt4rbjdbpqp6berdh5638r', 'header4', 'purpose4')
+
+# ============================================= Добавление статусов в маттермост по всем заявлениям =======================================================
+
+from datetime import datetime, date, time, timezone
+from zoneinfo import ZoneInfo
+import requests
+import firebirdsql
+
+# ==== НАСТРОЙКИ (оставь свои значения) =======================================================
+MATTERMOST_URL = MATTERMOST_URL
+HEADERS = headers
+DB_CFG = dict(host=host, database=database, user=user, password=password, charset=charset)
+LOCAL_TZ = ZoneInfo("Europe/Moscow")  # замени на ваш реальный TZ
+
+
+def _norm(s: str) -> str:
+    # трим, нижний регистр, ё -> е
+    return (s or "").strip().lower().replace("ё", "е")
+
+
+# --- emoji: нормализация shortname из БД (:palm_tree: -> palm_tree) -------------------------
+def normalize_emoji_code(raw: str | None) -> str:
+    if not raw:
+        return ""
+    s = str(raw).strip()
+    if s.startswith(":") and s.endswith(":"):
+        s = s[1:-1]
+    return s.strip().lower()
+
+
+# --- словари (создаются после объявления _norm) ----------------------------------------------
+PRIORITY_RAW = {
+    "отсутствие на рабочем месте": 100,
+    "больничный": 90,
+    "отпуск": 80,
+    "отпуск без содержания": 70,
+    "работа в выходной": 60,
+    "удаленная работа": 50,
+}
+PRIORITY = {_norm(k): v for k, v in PRIORITY_RAW.items()}
+
+BASE_STATUS_RAW = {
+    "отпуск": "away",
+    "отпуск без содержания": "away",
+    "удаленная работа": "online",
+    "больничный": "away",
+    "работа в выходной": "online",
+    "отсутствие на рабочем месте": "away",
+}
+BASE_STATUS = {_norm(k): v for k, v in BASE_STATUS_RAW.items()}
+
+TYPE_DEFAULT_EMOJI_RAW = {
+    "отпуск": "palm_tree",
+    "отпуск без содержания": "moai",
+    "удаленная работа": "house",  # или 'house_with_garden', если так нужно
+    "больничный": "thermometer",
+    "работа в выходной": "moneybag",
+    "отсутствие на рабочем месте": "seat",  # чаще поддерживается, чем 'chair'
+}
+TYPE_DEFAULT_EMOJI = {_norm(k): v for k, v in TYPE_DEFAULT_EMOJI_RAW.items()}
+
+
+# ==== Маппинги, приоритеты и базовые статусы =================================================
+def _norm(s: str) -> str:
+    return (s or "").strip().lower().replace("ё", "е")
+
+
+# приоритет, если у пользователя несколько активных заявлений
+PRIORITY = {
+    _norm("отсутствие на рабочем месте"): 100,
+    _norm("больничный"): 90,
+    _norm("отпуск"): 80,
+    _norm("отпуск без содержания"): 70,
+    _norm("работа в выходной"): 60,
+    _norm("удаленная работа"): 50,
+}
+
+# базовый статус в MM
+BASE_STATUS = {
+    _norm("отпуск"): "away",
+    _norm("отпуск без содержания"): "away",
+    _norm("удаленная работа"): "online",
+    _norm("больничный"): "away",
+    _norm("работа в выходной"): "online",
+    _norm("отсутствие на рабочем месте"): "away",
+}
+
+# конвертация известных shortcodes -> символ для текста (fallback: без символа)
+SHORTCODE_TO_CHAR = {
+    "palm_tree": "🌴",
+    "moai": "🗿",
+    "house": "🏠",
+    "house_with_garden": "🏡",
+    "thermometer": "🌡️",
+    "moneybag": "💰",
+    "chair": "🪑",
+    "seat": "💺",
+}
+
+
+# ==== Утилиты дат/времени ====================================================================
+def _to_date(obj) -> date | None:
+    if obj is None:
+        return None
+    if isinstance(obj, date) and not isinstance(obj, datetime):
+        return obj
+    if isinstance(obj, datetime):
+        return obj.date()
+    if isinstance(obj, str):
+        for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%Y.%m.%d"):
+            try:
+                return datetime.strptime(obj, fmt).date()
+            except ValueError:
+                pass
+    raise ValueError(f"Неподдержимый формат даты: {obj!r}")
+
+
+def _to_time(obj) -> time | None:
+    if obj is None:
+        return None
+    if isinstance(obj, time):
+        return obj.replace(microsecond=0)
+    if isinstance(obj, datetime):
+        return obj.time().replace(microsecond=0)
+    if isinstance(obj, str):
+        for fmt in ("%H:%M:%S", "%H:%M"):
+            try:
+                return datetime.strptime(obj, fmt).time()
+            except ValueError:
+                pass
+    raise ValueError(f"Неподдержимый формат времени: {obj!r}")
+
+
+def _combine(dt_date: date, dt_time: time) -> datetime:
+    return datetime(dt_date.year, dt_date.month, dt_date.day, dt_time.hour, dt_time.minute,
+                    getattr(dt_time, "second", 0))
+
+
+def _start_of_day(d: date) -> datetime:
+    return datetime(d.year, d.month, d.day, 0, 0, 0)
+
+
+def _end_of_day(d: date) -> datetime:
+    return datetime(d.year, d.month, d.day, 23, 59, 0)
+
+
+def _to_expires_at_utc_z(local_dt: datetime) -> str:
+    if local_dt.tzinfo is None:
+        local_dt = local_dt.replace(tzinfo=LOCAL_TZ)
+    else:
+        local_dt = local_dt.astimezone(LOCAL_TZ)
+    dt_utc = local_dt.astimezone(timezone.utc)
+    return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _fmt_date(d: date) -> str:
+    return d.strftime("%d.%m.%Y")
+
+
+def _fmt_time(t: time) -> str:
+    return t.strftime("%H:%M")
+
+
+# ==== Достаем АКТИВНЫЕ заявления с учетом справочника T319 ===================================
+TYPE_WHITELIST = {
+    _norm("отпуск"),
+    _norm("отпуск без содержания"),
+    _norm("удаленная работа"),
+    _norm("больничный"),
+    _norm("работа в выходной"),
+    _norm("отсутствие на рабочем месте"),
+}
+
+
+def _fetch_rows_with_fallback():
+    """
+    Возвращает (rows, used_type_col, used_emoji_col_or_None).
+    Пробует T319.F5857, потом T319.F5855; для эмодзи — T319.F5858 либо NULL.
+    """
+    with firebirdsql.connect(**DB_CFG) as con:
+        cur = con.cursor()
+
+        type_candidates = ["F5857", "F5855"]
+        emoji_candidates = ["F5858", None]
+
+        last_err = None
+        for type_col in type_candidates:
+            for emoji_col in emoji_candidates:
+                emoji_sql = f"d.{emoji_col}" if emoji_col else "NULL"
+                sql = f"""
+                    SELECT
+                        t.ID,
+                        t.F5579 AS DATE_START,
+                        t.F5581 AS DATE_END,
+                        t.F5580 AS TIME_START,
+                        t.F5582 AS TIME_END,
+                        t.F5623 AS WEEKEND_DATE,
+                        t.F5574 AS USER_DB_ID,
+                        e.F16   AS USER_MM_ID,
+                        e.F4886 AS USER_FI,
+                        d.{type_col} AS TYPE_NAME,
+                        {emoji_sql} AS EMOJI_CODE
+                    FROM T302 t
+                    JOIN T3   e ON t.F5574 = e.ID
+                    LEFT JOIN T319 d ON t.F5857 = d.ID
+                """
+                try:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+                    return rows, type_col, emoji_col
+                except Exception as err:
+                    last_err = err
+                    # пробуем следующий вариант
+                    continue
+
+        # если ничего не сработало — поднимаем последнюю ошибку для наглядности
+        raise last_err if last_err else RuntimeError("Не удалось выбрать данные из T302/T319")
+
+
+def get_active_statements_from_db():
+    """
+    Возвращает список активных на текущий момент заявлений.
+    Результат: dict со следующими ключами:
+      id, user_db_id, user_mm_id, user_fi, type, type_norm, emoji_code,
+      start_dt_local (naive), end_dt_local (naive)
+    """
+    rows, used_type_col, used_emoji_col = _fetch_rows_with_fallback()
+
+    now_local = datetime.now(LOCAL_TZ).replace(tzinfo=None)
+    result = []
+
+    for r in rows:
+        (_id, d_start, d_end, t_start, t_end, weekend_date,
+         user_db_id, user_mm_id, user_fi, type_name, emoji_code) = r
+
+        # если у записи нет справочника/типа — пропускаем
+        if not type_name:
+            continue
+
+        type_name_str = str(type_name).strip()
+        type_name_norm = _norm(type_name_str)
+
+        # интересуют только известные нам типы
+        if type_name_norm not in TYPE_WHITELIST:
+            continue
+
+        # Вычисляем окно действия по типу
+        if type_name_norm in (_norm("отпуск"), _norm("отпуск без содержания"),
+                              _norm("удаленная работа"), _norm("больничный")):
+            ds = _to_date(d_start)
+            de = _to_date(d_end)
+            if not ds or not de:
+                continue
+            start_dt_local = _start_of_day(ds)
+            end_dt_local = _end_of_day(de)
+
+        elif type_name_norm == _norm("отсутствие на рабочем месте"):
+            ds = _to_date(d_start)
+            de = _to_date(d_end)
+            if not ds or not de:
+                continue
+            ts = _to_time(t_start) or time(0, 0, 0)
+            te = _to_time(t_end) or time(23, 59, 0)
+            start_dt_local = _combine(ds, ts)
+            end_dt_local = _combine(de, te)
+
+        elif type_name_norm == _norm("работа в выходной"):
+            wd = _to_date(weekend_date)
+            if not wd:
+                continue
+            start_dt_local = _start_of_day(wd)
+            end_dt_local = _end_of_day(wd)
+
+        else:
+            # на всякий случай (не должно сюда попадать)
+            continue
+
+        # Оставляем только «активные сейчас»
+        if not (start_dt_local <= now_local <= end_dt_local):
+            continue
+
+        result.append({
+            "id": _id,
+            "user_db_id": user_db_id,
+            "user_mm_id": user_mm_id,
+            "user_fi": user_fi,
+            "type": type_name_str,  # оригинал из справочника
+            "type_norm": type_name_norm,  # нормализованный
+            "emoji_code": normalize_emoji_code(emoji_code),
+            "start_dt_local": start_dt_local,
+            "end_dt_local": end_dt_local,
+        })
+
+    return result
+
+
+# ==== Тексты и вызовы Mattermost =============================================================
+def _build_status_text(rec: dict) -> str:
+    t_norm = rec["type_norm"]
+    emoji_char = SHORTCODE_TO_CHAR.get(rec["emoji_code"], "")
+    end_dt = rec["end_dt_local"]
+
+    if t_norm == _norm("отсутствие на рабочем месте"):
+        return f"{emoji_char} Отсутствую на рабочем месте до {_fmt_time(end_dt.time())} {_fmt_date(end_dt.date())}".strip()
+    if t_norm == _norm("работа в выходной"):
+        return f"{emoji_char} Работаю в выходной {_fmt_date(end_dt.date())}".strip()
+    if t_norm == _norm("отпуск"):
+        return f"{emoji_char} В отпуске до {_fmt_date(end_dt.date())}".strip()
+    if t_norm == _norm("отпуск без содержания"):
+        return f"{emoji_char} Отпуск без содержания до {_fmt_date(end_dt.date())}".strip()
+    if t_norm == _norm("удаленная работа"):
+        return f"{emoji_char} Работаю удалённо до {_fmt_date(end_dt.date())}".strip()
+    if t_norm == _norm("больничный"):
+        return f"{emoji_char} На больничном до {_fmt_date(end_dt.date())}".strip()
+    # дефолт
+    return f"{emoji_char} Статус: {rec['type']}".strip()
+
+
+def _mm_set_base_status(user_id: str, status: str) -> bool:
+    url = f"{MATTERMOST_URL}/api/v4/users/{user_id}/status"
+    try:
+        r = requests.put(url, headers=HEADERS, json={"user_id": user_id, "status": status}, timeout=10)
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        print(f"[MM] Ошибка установки базового статуса {status} для {user_id}: {e}")
+        return False
+
+
+def _mm_set_custom_status(user_id: str, emoji_shortcode: str, text: str, expires_at_iso_utc_z: str) -> bool:
+    url = f"{MATTERMOST_URL}/api/v4/users/{user_id}/status/custom"
+    payload = {
+        "emoji": emoji_shortcode or "speech_balloon",
+        "text": text,
+        "expires_at": expires_at_iso_utc_z
+    }
+    try:
+        r = requests.put(url, headers=HEADERS, json=payload, timeout=10)
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        print(f"[MM] Ошибка кастомного статуса для {user_id}: {e} | payload={payload}")
+        return False
+
+
+# ==== Разрешение конфликтов =================================================================
+def _pick_effective_per_user(active_records: list[dict]) -> dict[str, dict]:
+    chosen: dict[str, dict] = {}
+    for rec in active_records:
+        uid = rec["user_mm_id"]
+        prio = PRIORITY.get(rec["type_norm"], 0)
+        end_dt = rec["end_dt_local"]
+        if uid not in chosen:
+            chosen[uid] = rec | {"_prio": prio}
+            continue
+        cur = chosen[uid]
+        if prio > cur["_prio"] or (prio == cur["_prio"] and end_dt < cur["end_dt_local"]):
+            chosen[uid] = rec | {"_prio": prio}
+    for uid in list(chosen.keys()):
+        chosen[uid].pop("_prio", None)
+    return chosen
+
+
+# ==== Главная процедура =====================================================================
+def set_statuses_for_all_users():
+    active = get_active_statements_from_db()
+    effective = _pick_effective_per_user(active)
+
+    print(f"Активных заявлений: {len(active)}; статусы для пользователей: {len(effective)}")
+    for i, (user_id, rec) in enumerate(effective.items(), start=1):
+        base_status = BASE_STATUS.get(rec["type_norm"], "away")
+        text = _build_status_text(rec)
+        expires_at = _to_expires_at_utc_z(rec["end_dt_local"])
+        ok_base = _mm_set_base_status(user_id, base_status)
+        emoji_for_mm = rec["emoji_code"] or TYPE_DEFAULT_EMOJI.get(rec["type_norm"], "speech_balloon")
+        ok_cust = _mm_set_custom_status(user_id, emoji_for_mm, text, expires_at)
+
+        user_fi = rec.get("user_fi") or ""
+        end_str = rec["end_dt_local"].strftime("%Y-%m-%d %H:%M")
+        if ok_base and ok_cust:
+            print(f"{i}. ✅ {user_fi} ({user_id}): [{rec['type']}] до {end_str} (expires_at={expires_at})")
+        else:
+            print(f"{i}. ❌ {user_fi} ({user_id}): ошибка установки статуса [{rec['type']}]")
+
+
+# ==== (НЕОБЯЗАТЕЛЬНО) Снятие автостатусов, если нет активных записей =========================
+# Если потребуется «зачищать» статусы, которые были выставлены ранее, а заявление удалили,
+# можно сделать reconcile: пройтись по списку сотрудников (из T3), проверить текущий кастомный статус
+# через GET /api/v4/users/{id}/status/custom и, если он наш (по сигнатуре в тексте) и активных записей нет — DELETE.
+# Ниже заготовки (закомментированы):
+
+def get_all_mm_user_ids():
+    with firebirdsql.connect(**DB_CFG) as con:
+        cur = con.cursor()
+        cur.execute("SELECT F16 FROM T3 WHERE F16 IS NOT NULL")
+        return [row[0] for row in cur.fetchall()]
+
+
+def get_mm_custom_status(user_id: str) -> dict | None:
+    url = f"{MATTERMOST_URL}/api/v4/users/{user_id}/status/custom"
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+
+def clear_mm_custom_status(user_id: str) -> bool:
+    url = f"{MATTERMOST_URL}/api/v4/users/{user_id}/status/custom"
+    try:
+        resp = requests.delete(url, headers=HEADERS, timeout=10)
+        return resp.status_code in (200, 204)
+    except Exception:
+        return False
+
+
+def reconcile_statuses():
+    active = get_active_statements_from_db()
+    active_user_ids = {r["user_mm_id"] for r in active}
+    for uid in get_all_mm_user_ids():
+        if uid in active_user_ids:
+            continue
+        st = get_mm_custom_status(uid)
+        if st and isinstance(st, dict):
+            # простая эвристика: если наш текст содержит один из ожидаемых ярлыков — можем снять
+            text = (st.get("text") or "").lower()
+            if any(lbl in text for lbl in ("отпуск", "удалён", "больнич", "выходной", "отсутств")):
+                cleared = clear_mm_custom_status(uid)
+                print(f"Очистка статуса для {uid}: {'OK' if cleared else 'FAIL'}")
+
+# тестирование
