@@ -337,14 +337,14 @@ class webhookPlugin(Plugin):
                             'default': today,
                             'help_text': 'Формат даты: ДД.ММ.ГГ'
                         },
-                        {
-                            "display_name": "Планируемые времязатраты",
-                            "name": "plannedTimeCosts",
-                            "type": "text",
-                            'subtype': 'number',
-                            'optional': True,
-                            'default': 0
-                        }
+                        # {
+                        #     "display_name": "Планируемые времязатраты",
+                        #     "name": "plannedTimeCosts",
+                        #     "type": "text",
+                        #     'subtype': 'number',
+                        #     'optional': True,
+                        #     'default': 0
+                        # }
                     ],
                     "submit_label": "Cоздать",
                     "state": "somestate"
