@@ -350,6 +350,7 @@ class webhookPlugin(Plugin):
                     "state": "somestate"
                 }
             }
+            log.info(json.dumps(payload, indent=4, sort_keys=True, ensure_ascii=False))
             response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/actions/dialogs/open",
                           json=payload)
             log.info({'response': response.json(), 'status': response.status_code})
