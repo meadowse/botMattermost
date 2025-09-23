@@ -438,8 +438,10 @@ class webhookPlugin(Plugin):
                 message += f'Исполнитель: *@{executor}*\n' if executor is not None else ''
                 message += f'Задача: :hammer: *{task}*\n' if task is not None else ''
                 message += f'Deadline: :calendar: *{deadline}*\n' if deadline is not None else ''
-                message += f'Комментарий: :speech_balloon: *{comment}*\n' if comment is not None or comment != '' else ''
-                message += f'Планируемые времязатраты: :clock3: *{plannedTimeCosts}ч.*\n' if plannedTimeCosts is not None or plannedTimeCosts != '0' else ''
+                if comment is not None or comment != '':
+                    message += f'Комментарий: :speech_balloon: *{comment}*\n'
+                if plannedTimeCosts is not None or plannedTimeCosts != '0':
+                    message += f'Планируемые времязатраты: :clock3: *{plannedTimeCosts}ч.*\n'
                 message += 'Статус: :new: *Новая* :new:\n:large_yellow_circle: *Задача ожидает исполнения...*'
                 data = {'id': Dict.get('post_id'), 'message': message}
                 response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
