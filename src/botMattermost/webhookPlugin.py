@@ -350,8 +350,9 @@ class webhookPlugin(Plugin):
                     "state": "somestate"
                 }
             }
-            requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/actions/dialogs/open",
+            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/actions/dialogs/open",
                           json=payload)
+            log.info({'response': response.json(), 'status': response.status_code})
         else:
             self.driver.reply_to(msg, "Что-то пошло не так")
 
