@@ -315,7 +315,6 @@ class webhookPlugin(Plugin):
                             "name": "executor",
                             "type": "select",
                             "data_source": "users"
-                            # , 'default': event.body['user_id']
                         },
                         {
                             "display_name": "Комментарий",
@@ -337,14 +336,15 @@ class webhookPlugin(Plugin):
                             "type": "text",
                             'default': today,
                             'help_text': 'Формат даты: ДД.ММ.ГГ'
+                        },
+                        {
+                            "display_name": "Планируемые времязатраты",
+                            "name": "plannedTimeCosts",
+                            "type": "text",
+                            'subtype': 'number',
+                            'optional': True,
+                            'default': 0
                         }
-                        # {
-                        #     "display_name": "Вид работы",
-                        #     "name": "typeWork",
-                        #     "type": "select",
-                        #     'options': List
-                        #     # , 'default': event.body['user_name']
-                        # }
                     ],
                     "submit_label": "Cоздать",
                     "state": "somestate"
@@ -378,6 +378,7 @@ class webhookPlugin(Plugin):
             # log.info(directorId)
             executorId = event.body.get('submission').get('executor')
             # log.info(executorId)
+            plannedTimeCosts = event.body.get('submission').get('plannedTimeCosts')
             with (firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password,
                                       charset=config.charset) as con):
                 cur = con.cursor()
@@ -414,6 +415,7 @@ class webhookPlugin(Plugin):
                     'F4697': 0,
                     'F5451': idMessage,
                     'F5872': 'Новая',
+                    'F5889': plannedTimeCosts,
                 }
                 sql_values = []
                 for key, value in values.items():
@@ -428,14 +430,16 @@ class webhookPlugin(Plugin):
                 sql = f"""INSERT INTO T218 ({', '.join(values.keys())}) VALUES ({', '.join(sql_values)})"""
                 cur.execute(sql)
                 con.commit()
-                data = {'id': Dict.get('post_id'), 'message': f"""** Добавлена Задача by @{director}**
-Дата добавления: {dateStart}
-Постановщик: @{director}
-Исполнитель: @{executor}
-Задача: {task}
-Срок исполнения: {deadline}
-Комментарий: {comment}
-:large_yellow_circle: Задача ожидает исполнения..."""}
+                message = f'**Добавлена :hammer_and_wrench: Задача :hammer_and_wrench: by @{director}**\n'
+                message += f'Дата добавления: *{dateStart}*\n' if dateStart is not None else ''
+                message += f'Постановщик: *@{director}*\n' if director is not None else ''
+                message += f'Исполнитель: *@{executor}*\n' if executor is not None else ''
+                message += f'Задача: :hammer: *{task}*\n' if task is not None else ''
+                message += f'Deadline: :calendar: *{deadline}*\n' if deadline is not None else ''
+                message += f'Комментарий: :speech_balloon: *{comment}*\n' if comment is not None else '' if comment is not None else ''
+                message += f'Планируемые времязатраты: :clock3: *{plannedTimeCosts}ч.*\n' if plannedTimeCosts is not None else ''
+                message += 'Статус: :new: *Новая* :new:\n:large_yellow_circle: *Задача ожидает исполнения...*'
+                data = {'id': Dict.get('post_id'), 'message': message}
                 response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
                                         json=data, headers=config.headers)
                 if response.status_code == 200:
