@@ -299,7 +299,7 @@ class webhookPlugin(Plugin):
                 "trigger_id": event.body['trigger_id'],
                 "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/addTask",
                 "dialog": {
-                    "callback_id": json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False),
+                    "callback_id": json.dumps(event.body, ensure_ascii=False),
                     "title": "Добавление задачи",
                     'introduction_text': f"Постановщик задачи: {event.body['user_name']}",
                     "elements": [
