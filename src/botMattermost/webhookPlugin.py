@@ -113,9 +113,7 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov',
-                            'b.musaev',
-                            ]  # список тех, кто может удалять и менять статус КП
+        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', ]  # список тех, кто может удалять и менять статус КП
         props = {
             "attachments": [
                 {
@@ -166,6 +164,14 @@ class webhookPlugin(Plugin):
                                 )
                             },
                         },
+                        {
+                            "id": "toRefuse",
+                            "name": "Ответить отказом",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toRefuse",
+                                "context": dict(message=message.body)
+                            }
+                        }
                     ],
                 }
             ]
@@ -252,7 +258,8 @@ class webhookPlugin(Plugin):
                 }
             ]
         }
-        self.driver.reply_to(message, '', props=mes_json)
+        if message.body.get('data').get('post').get('reply_count') == 0:
+            self.driver.reply_to(message, '', props=mes_json)
 
     @listen_webhook("cancelTask")
     async def cancelTask(self, event: WebHookEvent):
@@ -381,8 +388,8 @@ class webhookPlugin(Plugin):
             executorId = event.body.get('submission').get('executor')
             # log.info(executorId)
             plannedTimeCosts = event.body.get('submission').get('plannedTimeCosts')
-            with (firebirdsql.connect(host=config.host, database=config.database, user=config.user, password=config.password,
-                                      charset=config.charset) as con):
+            with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                      password=config.password, charset=config.charset) as con):
                 cur = con.cursor()
                 sql = f"""SELECT ID FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"""
                 cur.execute(sql)
@@ -433,11 +440,11 @@ class webhookPlugin(Plugin):
                 cur.execute(sql)
                 con.commit()
                 message = f'**Добавлена :hammer_and_wrench: Задача :hammer_and_wrench: by @{director}**\n'
-                message += f'Дата добавления: *{dateStart}*\n' if dateStart is not None else ''
-                message += f'Постановщик: *@{director}*\n' if director is not None else ''
-                message += f'Исполнитель: *@{executor}*\n' if executor is not None else ''
-                message += f'Задача: :hammer: *{task}*\n' if task is not None else ''
-                message += f'Deadline: :calendar: *{deadline}*\n' if deadline is not None else ''
+                message += f'Дата добавления: *{dateStart}*\n'
+                message += f'Постановщик: *@{director}*\n'
+                message += f'Исполнитель: *@{executor}*\n'
+                message += f'Задача: :hammer: *{task}*\n'
+                message += f'Deadline: :calendar: *{deadline}*\n'
                 message += f'Комментарий: :speech_balloon: *{comment}*\n' if comment is not None and comment != '' else ''
                 message += f'Планируемые времязатраты: :clock3: *{plannedTimeCosts}ч.*\n' if plannedTimeCosts is not None and plannedTimeCosts != '0' else ''
                 message += 'Статус: :new: *Новая* :new:\n:large_yellow_circle: *Задача ожидает исполнения...*'
