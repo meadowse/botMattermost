@@ -268,7 +268,7 @@ def get_today_docs_reminders():
         LEFT JOIN T212 ON T213.F4573 = T212.ID
         LEFT JOIN T3 AS MANAGER ON T213.F5021 = MANAGER.ID
         LEFT JOIN T3 AS PROJECT_MANAGER ON T212.F4950 = PROJECT_MANAGER.ID
-        WHERE T213.F4666 = '{today}' AND T213.F4570 IS NULL
+        WHERE T213.F4666 = '{today}' AND T213.F4570 IS NULL AND T213.F4567 <> 8
         """
         cur.execute(sql)
         result = cur.fetchall()

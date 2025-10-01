@@ -76,6 +76,7 @@ print(f'{datetime.now()} Процесс reminder запущен')
 # send_dr_reminders()
 # update_channels()
 set_statuses_for_all_users()
+send_and_update_docs_reminders()
 
 while True:
     print(f'{datetime.now()} Проверяем, есть ли запланированные задачи...')
