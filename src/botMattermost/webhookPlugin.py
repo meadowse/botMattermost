@@ -180,6 +180,30 @@ class webhookPlugin(Plugin):
                 'reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
 
+    @listen_webhook("toRefuse")
+    async def toRefuse(self, event: WebHookEvent):
+        # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        User = event.body.get('user_name')
+        with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                  password=config.password, charset=config.charset) as con):
+            cur = con.cursor()
+            cur.execute(f"""SELECT T3.F4932 FROM T3 LEFT JOIN T309 ON T3.ID = T309.F5681 
+            WHERE T309.F5861 = 'post.mosproektkompleks.ru' AND T3.F4932 = {User}""")
+            if cur.fetchone()[0] == User:
+
+                response = requests.delete(
+                    f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}",
+                    headers=config.headers)
+                if response.status_code == 200:
+                    log.info('Message sent successfully.')
+                    log.info(response.json())
+                else:
+                    log.info(f'Failed to send message: {response.status_code}, {response.text}')
+            else:
+                self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопку \"Ответить отказом\"")
+
     @listen_webhook("delete")
     async def delete(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
@@ -247,10 +271,10 @@ class webhookPlugin(Plugin):
                             }
                         },
                         {
-                            'id': 'cancelTask',
+                            'id': 'cncelTask',
                             'name': 'Отмена',
                             'integration': {
-                                'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cancelTask',
+                                'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cncelTask',
                                 'context': message.body,
                             }
                         }
@@ -261,8 +285,8 @@ class webhookPlugin(Plugin):
         if message.body.get('data').get('post').get('reply_count') == 0:
             self.driver.reply_to(message, '', props=mes_json)
 
-    @listen_webhook("cancelTask")
-    async def cancelTask(self, event: WebHookEvent):
+    @listen_webhook("cncelTask")
+    async def cncelTask(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
         response = requests.delete(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{event.body.get('post_id')}", headers=config.headers)
         if response.status_code == 200:
@@ -391,19 +415,19 @@ class webhookPlugin(Plugin):
             with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                       password=config.password, charset=config.charset) as con):
                 cur = con.cursor()
-                sql = f"""SELECT ID FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"""
+                sql = f"SELECT ID FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"
                 cur.execute(sql)
                 contractId = cur.fetchone()
                 # log.info(contractId)
                 if contractId is not None:
                     contractId = contractId[0]
-                sql = f"""SELECT ID, F4932 FROM T3 WHERE F16 = '{directorId}'"""
+                sql = f"SELECT ID, F4932 FROM T3 WHERE F16 = '{directorId}'"
                 cur.execute(sql)
                 directorData = cur.fetchone()
                 directorId = directorData[0]
                 director = directorData[1]
                 # log.info(directorData)
-                sql = f"""SELECT ID, F4932 FROM T3 WHERE F16 = '{executorId}'"""
+                sql = f"SELECT ID, F4932 FROM T3 WHERE F16 = '{executorId}'"
                 cur.execute(sql)
                 executorData = cur.fetchone()
                 executorId = executorData[0]
@@ -436,7 +460,7 @@ class webhookPlugin(Plugin):
                         sql_values.append(f"'{value}'")
                     else:
                         raise ValueError(f"Unsupported type for value: {value}")
-                sql = f"""INSERT INTO T218 ({', '.join(values.keys())}) VALUES ({', '.join(sql_values)})"""
+                sql = f"INSERT INTO T218 ({', '.join(values.keys())}) VALUES ({', '.join(sql_values)})"
                 cur.execute(sql)
                 con.commit()
                 message = f'**Добавлена :hammer_and_wrench: Задача :hammer_and_wrench: by @{director}**\n'

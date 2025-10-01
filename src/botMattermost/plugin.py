@@ -46,8 +46,7 @@ class SearchPlugin(Plugin):
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
         managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov',
-                            'b.musaev',
-                            ]  # список тех, кто может удалять и менять статус КП
+                            'b.musaev', ]  # список тех, кто может удалять и менять статус КП
         props = {
             "attachments": [
                 {
@@ -56,55 +55,70 @@ class SearchPlugin(Plugin):
                             "id": "delete",
                             "name": "❌Удалить",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
-                                       "hooks/delete",
-                                "context": dict(
-                                    message=message.body,
-                                    managerNicknames=managerNicknames,
-                                )
+                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/delete",
+                                "context": dict(message=message.body, managerNicknames=managerNicknames, )
                             },
                         },
                         {
                             "id": "reactTo",
                             "name": "⛔Неквал",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
-                                       "hooks/reactTo",
-                                "context": dict(
-                                    message=message.body,
-                                    managerNicknames=managerNicknames,
-                                )
+                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/reactTo",
+                                "context": dict(message=message.body, managerNicknames=managerNicknames, )
                             },
                         },
                         {
                             "id": "createLead",
                             "name": "🚩Создать Лида",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
-                                       "hooks/createLead",
-                                "context": dict(
-                                    message=message.body,
-                                )
+                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/createLead",
+                                "context": dict(message=message.body, )
                             },
                         },
                         {
                             "id": "createKP",
                             "name": "💲Создать КП",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/"
-                                       "hooks/createKP",
-                                "context": dict(
-                                    message=message.body,
-                                )
+                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/createKP",
+                                "context": dict(message=message.body, )
                             },
                         },
+                        {
+                            "id": "toRefuse",
+                            "name": "Ответить отказом",
+                            "integration": {
+                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/toRefuse",
+                                "context": dict(message=message.body, )
+                            }
+                        }
                     ],
                 }
             ]
         }
-        if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get('data').get('post').get(
-                'reply_count') == 0:
+        if (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get('reply_count') == 0:
             self.driver.reply_to(message, '', props=props)
+
+    @listen_webhook("toRefuse")
+    async def toRefuse(self, event: WebHookEvent):
+        # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        User = event.body.get('user_name')
+        with (firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con):
+            cur = con.cursor()
+            cur.execute(f"""SELECT T3.F4932 FROM T3 LEFT JOIN T309 ON T3.ID = T309.F5681 
+                WHERE T309.F5861 = 'post.mosproektkompleks.ru' AND T3.F4932 = {User}""")
+            if cur.fetchone()[0] == User:
+                log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
+                # response = requests.delete(
+                #     f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{message.reply_id}", headers=headers)
+                # if response.status_code == 200:
+                #     log.info('Message sent successfully.')
+                #     log.info(response.json())
+                # else:
+                #     log.info(f'Failed to send message: {response.status_code}, {response.text}')
+            else:
+                self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопку \"Ответить отказом\"")
 
     @listen_webhook("delete")
     async def delete(self, event: WebHookEvent):
