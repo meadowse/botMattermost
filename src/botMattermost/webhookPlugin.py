@@ -223,8 +223,7 @@ class webhookPlugin(Plugin):
                     server.login(login, Password)
                     server.sendmail(sender_email, receiver_email, msg.as_string())
                     log.info("Письмо успешно отправлено!")
-                    self.driver.respond_to_web(event, {"update": {"message": "", "props": {}, }, }, )
-                    self.driver.reply_to(message, f"@{User} ответил отказом")
+                    self.driver.respond_to_web(event, {"update": {"message": f"@{User} ответил отказом", "props": {}, }, }, )
                 except Exception as e:
                     log.info("Ошибка при отправке:", e)
                     self.driver.reply_to(message, f"@{User}, ошибка при отправке: {e}")
