@@ -16,8 +16,11 @@ import asyncio
 from pyexpat.errors import messages
 from config import confluence_url, host, database, user, password, charset, headers, \
     webhook_host_port, mattermost_host, mattermost_port, MATTERMOST_URL, MATTERMOST_PORT, headers, \
-    webhookLocalhostUrl
+    webhookLocalhostUrl, webhook_host_url, postDomen, smtp_server, smtp_port
 from reminder import send_message_to_channel, getChannelId
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 
 @dataclass
@@ -55,7 +58,7 @@ class SearchPlugin(Plugin):
                             "id": "delete",
                             "name": "❌Удалить",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/delete",
+                                "url": f"{webhook_host_url}:{webhook_host_port}/hooks/delete",
                                 "context": dict(message=message.body, managerNicknames=managerNicknames, )
                             },
                         },
@@ -63,7 +66,7 @@ class SearchPlugin(Plugin):
                             "id": "reactTo",
                             "name": "⛔Неквал",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/reactTo",
+                                "url": f"{webhook_host_url}:{webhook_host_port}/hooks/reactTo",
                                 "context": dict(message=message.body, managerNicknames=managerNicknames, )
                             },
                         },
@@ -71,7 +74,7 @@ class SearchPlugin(Plugin):
                             "id": "createLead",
                             "name": "🚩Создать Лида",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/createLead",
+                                "url": f"{webhook_host_url}:{webhook_host_port}/hooks/createLead",
                                 "context": dict(message=message.body, )
                             },
                         },
@@ -79,13 +82,13 @@ class SearchPlugin(Plugin):
                             "id": "createKP",
                             "name": "💲Создать КП",
                             "integration": {
-                                "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/createKP",
+                                "url": f"{webhook_host_url}:{webhook_host_port}/hooks/createKP",
                                 "context": dict(message=message.body, )
                             },
                         },
                         {
                             "id": "toRefuse",
-                            "name": "Ответить отказом",
+                            "name": "📧Ответить отказом",
                             "integration": {
                                 "url": f"{webhookLocalhostUrl}:{webhook_host_port}/hooks/toRefuse",
                                 "context": dict(message=message.body, )
@@ -95,7 +98,8 @@ class SearchPlugin(Plugin):
                 }
             ]
         }
-        if (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get('reply_count') == 0:
+        if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get('data').get('post').get('reply_count') == 0:
+            # or (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy')
             self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("toRefuse")
@@ -104,19 +108,65 @@ class SearchPlugin(Plugin):
         context = event.body.get('context')
         message = Message(context.get('message'))
         User = event.body.get('user_name')
+        log.info(User)
         with (firebirdsql.connect(host=host, database=database, user=user, password=password, charset=charset) as con):
             cur = con.cursor()
             cur.execute(f"""SELECT T3.F4932 FROM T3 LEFT JOIN T309 ON T3.ID = T309.F5681 
-                WHERE T309.F5861 = 'post.mosproektkompleks.ru' AND T3.F4932 = {User}""")
+                WHERE T309.F5861 = 'post.mosproektkompleks.ru' AND T3.F4932 = '{User}'""")
             if cur.fetchone()[0] == User:
-                log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
-                # response = requests.delete(
-                #     f"{MATTERMOST_URL}:{MATTERMOST_PORT}/api/v4/posts/{message.reply_id}", headers=headers)
-                # if response.status_code == 200:
-                #     log.info('Message sent successfully.')
-                #     log.info(response.json())
-                # else:
-                #     log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                log.info(json.dumps(message.text, indent=4, sort_keys=True, ensure_ascii=False))
+                listMessage = message.text.split('Отправитель: [')
+                listMessage = listMessage[1].split('](mailto:')
+                # Получатель
+                receiver_email = listMessage[0]
+                listMessage = listMessage[1].split('### Тема:\n\n')
+                listMessage = listMessage[1].split('### Сообщение:\n\n')
+                # Тема
+                subject = listMessage[0].strip('\n')
+                # Оригинальное письмо (его текст нужно процитировать)
+                original_message = listMessage[1]
+                # Формируем цитату: каждая строка с ">"
+                quoted_message = "\n".join(["> " + line for line in original_message.splitlines()])
+                cur.execute(f"""SELECT T309.F5683 AS login, T309.F5684 AS password, T4.F7 AS post, T3.F10 AS fio FROM T3
+                LEFT JOIN T309 ON T3.ID = T309.F5681 LEFT JOIN T4 ON T4.ID = T3.F11 WHERE T3.F4932 = '{User}'""")
+                dataUser = cur.fetchone()
+                login = dataUser[0]
+                Password = dataUser[1]
+                post = dataUser[2]
+                fio = dataUser[3]
+                sender_email = User + postDomen
+                # Текст нового письма
+                new_message_text = f"""Здравствуйте!
+                
+Благодарим за обращение в «МосПроектКомплекс»! По результатам рассмотрения запроса услуг вынуждены сообщить, что сейчас, к сожалению, мы не сможем помочь вам в данном виде работ.
+Мы высоко ценим ваше внимание к нашей компании и надеемся на возможность сотрудничества в будущем. Будем рады рассмотреть ваши новые запросы и принять участие в решении последующих задач.
+Мы являемся ведущей московской компанией в области инжиниринга коммерческой недвижимости по следующим направлениям:
+Проектирование / Обследование / Экспертиза / Пожарная безопасность / Кадастр / Консалтинг / Легализация самостроя
+
+                {quoted_message}  
+
+                С уважением,
+                {post} {fio}"""
+                # Формируем письмо
+                msg = MIMEMultipart()
+                msg["From"] = sender_email
+                msg["To"] = receiver_email
+                msg["Subject"] = subject
+                msg.attach(MIMEText(new_message_text, "plain", "utf-8"))
+                # Отправка
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                try:
+                    server.starttls()
+                    server.login(login, Password)
+                    server.sendmail(sender_email, receiver_email, msg.as_string())
+                    log.info("Письмо успешно отправлено!")
+                    self.driver.respond_to_web(event, {"update": {"message": "", "props": {}, }, }, )
+                    self.driver.reply_to(message, f"@{User} ответил отказом")
+                except Exception as e:
+                    log.info("Ошибка при отправке:", e)
+                    self.driver.reply_to(message, f"@{User}, ошибка при отправке: {e}")
+                finally:
+                    server.quit()
             else:
                 self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопку \"Ответить отказом\"")
 

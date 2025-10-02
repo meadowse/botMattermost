@@ -13,7 +13,7 @@ bot = Bot(
         SSL_VERIFY = True,
         WEBHOOK_HOST_ENABLED = True,
         WEBHOOK_HOST_URL = WEBHOOK_HOST_URL,
-        # WEBHOOK_HOST_PORT = 8579,
+        # WEBHOOK_HOST_PORT = 8585,
         # LOG_LEVEL = logging.DEBUG,
     ),
     plugins=[ExamplePlugin(), WebHookExample(),

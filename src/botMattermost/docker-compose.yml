@@ -1,8 +1,8 @@
 services:
-  botMattermost:
-    image: bot_mattermost
+  testBotMattermost:
+    image: test_bot_mattermost
     build:
       context: .
       dockerfile: ./Dockerfile
     ports:
-      - 8579:8579
+      - 8585:8585
