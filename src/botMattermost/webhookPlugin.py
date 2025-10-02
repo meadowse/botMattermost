@@ -195,13 +195,11 @@ class webhookPlugin(Plugin):
                 original_message = listMessage[1]
                 # Формируем цитату: каждая строка с ">"
                 quoted_message = "\n".join(["> " + line for line in original_message.splitlines()])
-                cur.execute(f"""SELECT T309.F5683 AS login, T309.F5684 AS password, T4.F7 AS post, T3.F10 AS fio FROM T3
-                    LEFT JOIN T309 ON T3.ID = T309.F5681 LEFT JOIN T4 ON T4.ID = T3.F11 WHERE T3.F4932 = '{User}'""")
+                cur.execute(f"""SELECT T309.F5683 AS login, T309.F5684 AS password FROM T3
+                    LEFT JOIN T309 ON T3.ID = T309.F5681 WHERE T3.F4932 = '{User}'""")
                 dataUser = cur.fetchone()
                 login = dataUser[0]
                 Password = dataUser[1]
-                post = dataUser[2]
-                fio = dataUser[3]
                 sender_email = User + config.postDomen
                 # Текст нового письма
                 new_message_text = f"""Здравствуйте!
@@ -211,10 +209,7 @@ class webhookPlugin(Plugin):
     Мы являемся ведущей московской компанией в области инжиниринга коммерческой недвижимости по следующим направлениям:
     Проектирование / Обследование / Экспертиза / Пожарная безопасность / Кадастр / Консалтинг / Легализация самостроя
 
-                    {quoted_message}  
-
-                    С уважением,
-                    {post} {fio}"""
+                {quoted_message}"""
                 # Формируем письмо
                 msg = MIMEMultipart()
                 msg["From"] = sender_email
