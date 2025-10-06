@@ -116,7 +116,7 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', ]  # список тех, кто может удалять и менять статус КП
+        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', 'm.pryamorukov', ]  # список тех, кто может удалять и менять статус КП
         props = {
             "attachments": [
                 {
@@ -180,9 +180,12 @@ class webhookPlugin(Plugin):
         with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                  password=config.password, charset=config.charset) as con:
             cur = con.cursor()
-            cur.execute(f"""SELECT T3.F4932 FROM T3 LEFT JOIN T309 ON T3.ID = T309.F5681 
-                    WHERE T309.F5861 = 'post.mosproektkompleks.ru' AND T3.F4932 = '{User}'""")
-            if cur.fetchone()[0] == User:
+            cur.execute(f"""SELECT T3.F4932 FROM T5 LEFT JOIN T3 ON T5.ID = T3.F27 LEFT JOIN T309 ON T3.ID = T309.F5681
+            WHERE T5.F26 = 'Отдел продаж' AND T3.F5383 = 1 AND F5682 like '%https://post.mosproektkompleks.ru%' AND T3.F4932 = '{User}'""")
+            result = cur.fetchone()
+            if result is None:
+                self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопку \"Ответить отказом\"")
+            else:
                 listMessage = message.text.split('Отправитель: [')
                 listMessage = listMessage[1].split('](mailto:')
                 # Получатель
@@ -196,7 +199,8 @@ class webhookPlugin(Plugin):
                 # Формируем цитату: каждая строка с ">"
                 quoted_message = "\n".join(["> " + line for line in original_message.splitlines()])
                 cur.execute(f"""SELECT T309.F5683 AS login, T309.F5684 AS password FROM T3
-                    LEFT JOIN T309 ON T3.ID = T309.F5681 WHERE T3.F4932 = '{User}'""")
+                LEFT JOIN T309 ON T3.ID = T309.F5681
+                WHERE T3.F4932 = '{User}' AND F5682 like '%https://post.mosproektkompleks.ru%'""")
                 dataUser = cur.fetchone()
                 login = dataUser[0]
                 Password = dataUser[1]
@@ -229,8 +233,6 @@ class webhookPlugin(Plugin):
                     self.driver.reply_to(message, f"@{User}, ошибка при отправке: {e}")
                 finally:
                     server.quit()
-            else:
-                self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопку \"Ответить отказом\"")
 
     @listen_webhook("delete")
     async def delete(self, event: WebHookEvent):
