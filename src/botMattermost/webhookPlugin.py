@@ -114,6 +114,67 @@ class webhookPlugin(Plugin):
             )
 
     @listen_to("[А-Яа-яЁё]*")
+    async def reconciliationPayments(self, message: Message):
+        # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
+        generalManagers = ['z.shirinov', ]  # список тех, кто может удалять и менять статус КП
+        props = {
+            "attachments": [
+                {
+                    "actions": [
+                        {
+                            "id": "toApprove",
+                            "name": "Согласовать",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toApprove",
+                                "context": dict(message=message.body, generalManagers=generalManagers, )
+                            },
+                        },
+                        {
+                            "id": "deny",
+                            "name": "Отказать",
+                            "integration": {
+                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deny",
+                                "context": dict(message=message.body, generalManagers=generalManagers, )
+                            },
+                        },
+                    ],
+                }
+            ]
+        }
+        if message.channel_id == 'aicmyxehzjg5tmg7by4p6o9gih' and message.body.get('data').get('post').get(
+                'reply_count') == 0:
+            self.driver.reply_to(message, '', props=props)
+
+    @listen_webhook("deny")
+    async def deny(self, event: WebHookEvent):
+        User = event.body.get('user_name')
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        if User in context.get("generalManagers"):
+            self.driver.respond_to_web(event, {"update": {"message": f"@{User} ответил ОТКАЗОМ", "props": {}}, }, )
+        else:
+            self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
+
+    @listen_webhook("toApprove")
+    async def toApprove(self, event: WebHookEvent):
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        try:
+            User = event.body.get('user_name')
+            if User in context.get("generalManagers"):
+                with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                         password=config.password, charset=config.charset) as con:
+                    cur = con.cursor()
+                    cur.execute(f"""UPDATE T315 SET F5907 = 'Согласовано' WHERE F5909 = '{message.reply_id}'""")
+                    con.commit()
+                    self.driver.respond_to_web(event, {"update": {"message": f"@{User} СОГЛАСОВАЛ", "props": {}}, }, )
+            else:
+                self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+    @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
         managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', 'm.pryamorukov', ]  # список тех, кто может удалять и менять статус КП
@@ -183,46 +244,45 @@ class webhookPlugin(Plugin):
             cur.execute(f"""SELECT T3.F4932 FROM T5 LEFT JOIN T3 ON T5.ID = T3.F27 LEFT JOIN T309 ON T3.ID = T309.F5681
             WHERE T5.F26 = 'Отдел продаж' AND T3.F5383 = 1 AND F5682 like '%https://post.mosproektkompleks.ru%' AND T3.F4932 = '{User}'""")
             result = cur.fetchone()
-            if result is None:
+            if result is not None:
                 self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопку \"Ответить отказом\"")
             else:
-                listMessage = message.text.split('Отправитель: [')
-                listMessage = listMessage[1].split('](mailto:')
-                # Получатель
-                receiver_email = listMessage[0]
-                listMessage = listMessage[1].split('### Тема:\n\n')
-                listMessage = listMessage[1].split('### Сообщение:\n\n')
-                # Тема
-                subject = listMessage[0].strip('\n')
-                # Оригинальное письмо (его текст нужно процитировать)
-                original_message = listMessage[1]
-                # Формируем цитату: каждая строка с ">"
-                quoted_message = "\n".join(["> " + line for line in original_message.splitlines()])
-                cur.execute(f"""SELECT T309.F5683 AS login, T309.F5684 AS password FROM T3
-                LEFT JOIN T309 ON T3.ID = T309.F5681
-                WHERE T3.F4932 = '{User}' AND F5682 like '%https://post.mosproektkompleks.ru%'""")
-                dataUser = cur.fetchone()
-                login = dataUser[0]
-                Password = dataUser[1]
-                sender_email = User + config.postDomen
-                # Текст нового письма
-                new_message_text = f"""Здравствуйте!
+                server = smtplib.SMTP(config.smtp_server, config.smtp_port)
+                try:
+                    listMessage = message.text.split('\n### Отправитель: ')
+                    listMessage = listMessage[1].split('\n### Тема: ')
+                    # Получатель
+                    receiver_email = listMessage[0]
+                    listMessage = listMessage[1].split('### Сообщение: \n ')
+                    # Тема
+                    subject = listMessage[0].strip('\n')
+                    # Оригинальное письмо (его текст нужно процитировать)
+                    original_message = listMessage[1]
+                    # Формируем цитату: каждая строка с ">"
+                    quoted_message = "\n".join(["> " + line for line in original_message.splitlines()])
+                    cur.execute(f"""SELECT T309.F5683 AS login, T309.F5684 AS password FROM T3
+                    LEFT JOIN T309 ON T3.ID = T309.F5681
+                    WHERE T3.F4932 = '{User}' AND F5682 like '%https://post.mosproektkompleks.ru%'""")
+                    dataUser = cur.fetchone()
+                    login = dataUser[0]
+                    Password = dataUser[1]
+                    sender_email = User + config.postDomen
+                    # Текст нового письма
+                    new_message_text = f"""     Здравствуйте!
 
     Благодарим за обращение в «МосПроектКомплекс»! По результатам рассмотрения запроса услуг вынуждены сообщить, что сейчас, к сожалению, мы не сможем помочь вам в данном виде работ.
     Мы высоко ценим ваше внимание к нашей компании и надеемся на возможность сотрудничества в будущем. Будем рады рассмотреть ваши новые запросы и принять участие в решении последующих задач.
     Мы являемся ведущей московской компанией в области инжиниринга коммерческой недвижимости по следующим направлениям:
     Проектирование / Обследование / Экспертиза / Пожарная безопасность / Кадастр / Консалтинг / Легализация самостроя
 
-                {quoted_message}"""
-                # Формируем письмо
-                msg = MIMEMultipart()
-                msg["From"] = sender_email
-                msg["To"] = receiver_email
-                msg["Subject"] = subject
-                msg.attach(MIMEText(new_message_text, "plain", "utf-8"))
-                # Отправка
-                server = smtplib.SMTP(config.smtp_server, config.smtp_port)
-                try:
+{quoted_message}"""
+                    # Формируем письмо
+                    msg = MIMEMultipart()
+                    msg["From"] = sender_email
+                    msg["To"] = receiver_email
+                    msg["Subject"] = subject
+                    msg.attach(MIMEText(new_message_text, "plain", "utf-8"))
+                    # Отправка
                     server.starttls()
                     server.login(login, Password)
                     server.sendmail(sender_email, receiver_email, msg.as_string())
@@ -403,8 +463,6 @@ class webhookPlugin(Plugin):
                             "name": "plannedTimeCosts",
                             "type": "text",
                             'subtype': 'number',
-                            'optional': True,
-                            'default': '0'
                         }
                     ],
                     "submit_label": "Cоздать",
@@ -515,32 +573,32 @@ class webhookPlugin(Plugin):
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
         log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
 
-    @listen_webhook("complete")
-    async def complete(self, event: WebHookEvent):
-        # log.info(event.body)
-        Context = event.body.get('context')
-        msg = Message(Context)
-        try:
-            taskId = Context.get('taskId')
-            today = datetime.datetime.strftime(datetime.date.today(), '%d.%m.%y')
-            with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
-                                      password=config.password,
-                                      charset=config.charset) as con):
-                cur = con.cursor()
-                sql = f"""UPDATE T218 SET F4697 = 1, F4708 = '{today}' WHERE ID = {taskId}"""
-                cur.execute(sql)
-                con.commit()
-            messageId = Context.get('messageId')
-            if messageId is not None:
-                channelId = getChannelId(messageId)
-                message = dict(data=dict(post=dict(channel_id=channelId, root_id=messageId)))
-                message = Message(message)
-                self.driver.reply_to(message, f"@{Context.get('executor')} выполнил задачу")
-            self.driver.respond_to_web(event, {
-                "update": {"message": f"{Context.get('message')}\nзадача выполнена", "props": {}}, }, )
-        except Exception as ex:
-            self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")
-        log.info(f"Веб-хук complete выполнен: {datetime.datetime.now()}")
+    # @listen_webhook("complete")
+    # async def complete(self, event: WebHookEvent):
+    #     # log.info(event.body)
+    #     Context = event.body.get('context')
+    #     msg = Message(Context)
+    #     try:
+    #         taskId = Context.get('taskId')
+    #         today = datetime.datetime.strftime(datetime.date.today(), '%d.%m.%y')
+    #         with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+    #                                   password=config.password,
+    #                                   charset=config.charset) as con):
+    #             cur = con.cursor()
+    #             sql = f"""UPDATE T218 SET F4697 = 1, F4708 = '{today}' WHERE ID = {taskId}"""
+    #             cur.execute(sql)
+    #             con.commit()
+    #         messageId = Context.get('messageId')
+    #         if messageId is not None:
+    #             channelId = getChannelId(messageId)
+    #             message = dict(data=dict(post=dict(channel_id=channelId, root_id=messageId)))
+    #             message = Message(message)
+    #             self.driver.reply_to(message, f"@{Context.get('executor')} выполнил задачу")
+    #         self.driver.respond_to_web(event, {
+    #             "update": {"message": f"{Context.get('message')}\nзадача выполнена", "props": {}}, }, )
+    #     except Exception as ex:
+    #         self.driver.reply_to(msg, f"Ошибка при выполнении задачи: {ex}")
+    #     log.info(f"Веб-хук complete выполнен: {datetime.datetime.now()}")
 
 
 def add_LEAD(message_id, user_db_id):
