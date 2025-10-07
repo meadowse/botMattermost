@@ -217,7 +217,7 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        if message.sender_name == 'mpk_mail_bot' and (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get('reply_count') == 0:
+        if (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get('reply_count') == 0:
             managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', 'm.pryamorukov', ]  # список тех, кто может удалять и менять статус КП
             props = {
                 "attachments": [
