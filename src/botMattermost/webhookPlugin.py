@@ -114,46 +114,86 @@ class webhookPlugin(Plugin):
             )
 
     @listen_to("[А-Яа-яЁё]*")
+    async def officialStatements(self, message: Message):
+        # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
+        if message.sender_name == 'notify_bot' and message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get('data').get('post').get(
+                'reply_count') == 0:
+            mustCoordinate = ''
+            props = {
+                "attachments": [
+                    {
+                        "actions": [
+                            {
+                                "id": "toApprove",
+                                "name": "Согласовать",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toApprove",
+                                    "context": dict(message=message.body, generalManagers=generalManagers, )
+                                },
+                            },
+                            {
+                                "id": "deny",
+                                "name": "Отказать",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deny",
+                                    "context": dict(message=message.body, generalManagers=generalManagers, )
+                                },
+                            },
+                        ],
+                    }
+                ]
+            }
+            self.driver.reply_to(message, '', props=props)
+
+    @listen_to("[А-Яа-яЁё]*")
     async def reconciliationPayments(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        generalManagers = ['z.shirinov', ]  # список тех, кто может удалять и менять статус КП
-        props = {
-            "attachments": [
-                {
-                    "actions": [
-                        {
-                            "id": "toApprove",
-                            "name": "Согласовать",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toApprove",
-                                "context": dict(message=message.body, generalManagers=generalManagers, )
+        if message.sender_name == 'notify_bot' and message.channel_id == 'aicmyxehzjg5tmg7by4p6o9gih' and message.body.get('data').get('post').get('reply_count') == 0:
+            generalManagers = ['z.shirinov', ]  # список тех, кто может удалять и менять статус КП
+            props = {
+                "attachments": [
+                    {
+                        "actions": [
+                            {
+                                "id": "toApprove",
+                                "name": ":white_check_mark: Согласовать",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toApprove",
+                                    "context": dict(message=message.body, generalManagers=generalManagers, )
+                                },
                             },
-                        },
-                        {
-                            "id": "deny",
-                            "name": "Отказать",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deny",
-                                "context": dict(message=message.body, generalManagers=generalManagers, )
+                            {
+                                "id": "deny",
+                                "name": ":x: Отказать",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deny",
+                                    "context": dict(message=message.body, generalManagers=generalManagers, )
+                                },
                             },
-                        },
-                    ],
-                }
-            ]
-        }
-        if message.channel_id == 'aicmyxehzjg5tmg7by4p6o9gih' and message.body.get('data').get('post').get(
-                'reply_count') == 0:
+                        ],
+                    }
+                ]
+            }
             self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("deny")
     async def deny(self, event: WebHookEvent):
-        User = event.body.get('user_name')
         context = event.body.get('context')
         message = Message(context.get('message'))
-        if User in context.get("generalManagers"):
-            self.driver.respond_to_web(event, {"update": {"message": f"@{User} ответил ОТКАЗОМ", "props": {}}, }, )
-        else:
-            self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
+        try:
+            User = event.body.get('user_name')
+            if User in context.get("generalManagers"):
+                with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                         password=config.password, charset=config.charset) as con:
+                    cur = con.cursor()
+                    cur.execute(f"""UPDATE T315 SET F5907 = 'НЕ согласовано' WHERE F5909 = '{message.reply_id}'""")
+                    con.commit()
+                    self.driver.respond_to_web(event, {"update": {"message": f"@{User} ответил ОТКАЗОМ", "props": {}}, }, )
+            else:
+                self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("toApprove")
     async def toApprove(self, event: WebHookEvent):
@@ -177,59 +217,56 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', 'm.pryamorukov', ]  # список тех, кто может удалять и менять статус КП
-        props = {
-            "attachments": [
-                {
-                    "actions": [
-                        {
-                            "id": "delete",
-                            "name": "❌Удалить",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/delete",
-                                "context": dict(message=message.body, managerNicknames=managerNicknames, )
+        if message.sender_name == 'mpk_mail_bot' and (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get('reply_count') == 0:
+            managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', 'm.pryamorukov', ]  # список тех, кто может удалять и менять статус КП
+            props = {
+                "attachments": [
+                    {
+                        "actions": [
+                            {
+                                "id": "delete",
+                                "name": "❌Удалить",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/delete",
+                                    "context": dict(message=message.body, managerNicknames=managerNicknames, )
+                                },
                             },
-                        },
-                        {
-                            "id": "reactTo",
-                            "name": "⛔Неквал",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/reactTo",
-                                "context": dict(message=message.body, managerNicknames=managerNicknames, )
+                            {
+                                "id": "reactTo",
+                                "name": "⛔Неквал",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/reactTo",
+                                    "context": dict(message=message.body, managerNicknames=managerNicknames, )
+                                },
                             },
-                        },
-                        {
-                            "id": "createLead",
-                            "name": "🚩Создать Лида",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createLead",
-                                "context": dict(message=message.body, )
+                            {
+                                "id": "createLead",
+                                "name": "🚩Создать Лида",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createLead",
+                                    "context": dict(message=message.body, )
+                                },
                             },
-                        },
-                        {
-                            "id": "createKP",
-                            "name": "💲Создать КП",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createKP",
-                                "context": dict(message=message.body, )
+                            {
+                                "id": "createKP",
+                                "name": "💲Создать КП",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createKP",
+                                    "context": dict(message=message.body, )
+                                },
                             },
-                        },
-                        {
-                            "id": "toRefuse",
-                            "name": "📧Ответить отказом",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toRefuse",
-                                "context": dict(message=message.body, )
+                            {
+                                "id": "toRefuse",
+                                "name": "📧Ответить отказом",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toRefuse",
+                                    "context": dict(message=message.body, )
+                                }
                             }
-                        }
-                    ],
-                }
-            ]
-        }
-        if (
-                message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get(
-                'data').get('post').get(
-                'reply_count') == 0:
+                        ],
+                    }
+                ]
+            }
             self.driver.reply_to(message, '', props=props)
 
     @listen_webhook("toRefuse")
@@ -348,31 +385,31 @@ class webhookPlugin(Plugin):
     @listen_to("задач", re.IGNORECASE)
     async def hello(self, message: Message):
         # log.info(message.body)
-        mes_json = {
-            'attachments': [
-                {
-                    "actions": [
-                        {
-                            "id": "createTask",
-                            "name": "Создать задачу",
-                            "integration": {
-                                "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createTask",
-                                "context": message.body,
-                            }
-                        },
-                        {
-                            'id': 'cncelTask',
-                            'name': 'Отмена',
-                            'integration': {
-                                'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cncelTask',
-                                'context': message.body,
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
         if message.body.get('data').get('post').get('reply_count') == 0:
+            mes_json = {
+                'attachments': [
+                    {
+                        "actions": [
+                            {
+                                "id": "createTask",
+                                "name": "Создать задачу",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createTask",
+                                    "context": message.body,
+                                }
+                            },
+                            {
+                                'id': 'cncelTask',
+                                'name': 'Отмена',
+                                'integration': {
+                                    'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cncelTask',
+                                    'context': message.body,
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
             self.driver.reply_to(message, '', props=mes_json)
 
     @listen_webhook("cncelTask")
@@ -470,8 +507,7 @@ class webhookPlugin(Plugin):
                 }
             }
             # log.info(json.dumps(payload, indent=4, sort_keys=True, ensure_ascii=False))
-            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/actions/dialogs/open",
-                          json=payload)
+            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/actions/dialogs/open", json=payload)
             log.info({'response': response.json(), 'status': response.status_code})
         else:
             self.driver.reply_to(msg, "Что-то пошло не так")
