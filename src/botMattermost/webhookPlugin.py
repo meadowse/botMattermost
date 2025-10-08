@@ -116,27 +116,27 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def officialStatements(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        if message.sender_name == 'notify_bot' and message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get('data').get('post').get(
-                'reply_count') == 0:
-            mustCoordinate = ''
+        if message.sender_name == 'notify_bot' and message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get(
+                'data').get('post').get('reply_count') == 0:
+            mustCoordinate = message.text.split('Должен согласовать: *@')[1].strip('*')
             props = {
                 "attachments": [
                     {
                         "actions": [
                             {
-                                "id": "toApprove",
-                                "name": "Согласовать",
+                                "id": "approve",
+                                "name": ":white_check_mark: Согласовать",
                                 "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/toApprove",
-                                    "context": dict(message=message.body, generalManagers=generalManagers, )
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approve",
+                                    "context": dict(message=message.body, mustCoordinate=mustCoordinate, )
                                 },
                             },
                             {
-                                "id": "deny",
-                                "name": "Отказать",
+                                "id": "denied",
+                                "name": ":x: Отказать",
                                 "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deny",
-                                    "context": dict(message=message.body, generalManagers=generalManagers, )
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/denied",
+                                    "context": dict(message=message.body, mustCoordinate=mustCoordinate, )
                                 },
                             },
                         ],
@@ -144,6 +144,45 @@ class webhookPlugin(Plugin):
                 ]
             }
             self.driver.reply_to(message, '', props=props)
+
+    @listen_webhook("denied")
+    async def denied(self, event: WebHookEvent):
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        try:
+            User = event.body.get('user_name')
+            if User == context.get("mustCoordinate"):
+                with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                         password=config.password, charset=config.charset) as con:
+                    cur = con.cursor()
+                    cur.execute(f"""UPDATE T302 SET F5860 = 'НЕ согласовано' WHERE F5703 = '{message.reply_id}'""")
+                    con.commit()
+                    self.driver.respond_to_web(event,
+                                               {"update": {"message": f"@{User} ответил ОТКАЗОМ", "props": {}}, }, )
+            else:
+                self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+    @listen_webhook("approve")
+    async def approve(self, event: WebHookEvent):
+        context = event.body.get('context')
+        message = Message(context.get('message'))
+        try:
+            User = event.body.get('user_name')
+            if User == context.get("mustCoordinate"):
+                with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                         password=config.password, charset=config.charset) as con:
+                    cur = con.cursor()
+                    cur.execute(f"""UPDATE T302 SET F5860 = 'Согласовано' WHERE F5703 = '{message.reply_id}'""")
+                    con.commit()
+                    self.driver.respond_to_web(event, {"update": {"message": f"@{User} СОГЛАСОВАЛ", "props": {}}, }, )
+            else:
+                self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
     async def reconciliationPayments(self, message: Message):
