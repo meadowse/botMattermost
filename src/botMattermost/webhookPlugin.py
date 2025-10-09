@@ -116,7 +116,7 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def officialStatements(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        if message.sender_name == 'notify_bot' and message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay' and message.body.get(
+        if message.sender_name == 'notify_bot' and message.channel_id == 'odc4nzf6ctnqdqkfsb1jhaiggr' and message.body.get(
                 'data').get('post').get('reply_count') == 0:
             mustCoordinate = message.text.split('Должен согласовать: *@')[1].strip('*')
             props = {
