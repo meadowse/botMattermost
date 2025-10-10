@@ -87,7 +87,7 @@ class SearchPlugin(Plugin):
                     cur.execute(f"""UPDATE T302 SET F5860 = 'НЕ согласовано' WHERE F5703 = '{message.reply_id}'""")
                     con.commit()
                     self.driver.respond_to_web(event,
-                                               {"update": {"message": f"@{User} ответил ОТКАЗОМ", "props": {}}, }, )
+                                               {"update": {"message": f"@{User} ответил Отказом :x:", "props": {}}, }, )
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
@@ -106,7 +106,7 @@ class SearchPlugin(Plugin):
                     cur = con.cursor()
                     cur.execute(f"""UPDATE T302 SET F5860 = 'Согласовано' WHERE F5703 = '{message.reply_id}'""")
                     con.commit()
-                    self.driver.respond_to_web(event, {"update": {"message": f"@{User} СОГЛАСОВАЛ", "props": {}}, }, )
+                    self.driver.respond_to_web(event, {"update": {"message": f"@{User} Согласовал :white_check_mark:", "props": {}}, }, )
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
