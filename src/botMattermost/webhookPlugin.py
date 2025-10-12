@@ -157,6 +157,7 @@ class webhookPlugin(Plugin):
                     cur = con.cursor()
                     cur.execute(f"""UPDATE T302 SET F5860 = 'НЕ согласовано' WHERE F5703 = '{message.reply_id}'""")
                     con.commit()
+                    self.driver.react_to(message, "x")
                     self.driver.respond_to_web(event,
                                                {"update": {"message": f"@{User} ответил Отказом :x:", "props": {}}, }, )
             else:
@@ -177,6 +178,7 @@ class webhookPlugin(Plugin):
                     cur = con.cursor()
                     cur.execute(f"""UPDATE T302 SET F5860 = 'Согласовано' WHERE F5703 = '{message.reply_id}'""")
                     con.commit()
+                    self.driver.react_to(message, "white_check_mark")
                     self.driver.respond_to_web(event, {"update": {"message": f"@{User} Согласовал :white_check_mark:", "props": {}}, }, )
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
@@ -227,6 +229,7 @@ class webhookPlugin(Plugin):
                     cur = con.cursor()
                     cur.execute(f"""UPDATE T315 SET F5907 = 'НЕ согласовано' WHERE F5909 = '{message.reply_id}'""")
                     con.commit()
+                    self.driver.react_to(message, "x")
                     self.driver.respond_to_web(event, {"update": {"message": f"@{User} ответил Отказом :x:", "props": {}}, }, )
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
@@ -246,6 +249,7 @@ class webhookPlugin(Plugin):
                     cur = con.cursor()
                     cur.execute(f"""UPDATE T315 SET F5907 = 'Согласовано' WHERE F5909 = '{message.reply_id}'""")
                     con.commit()
+                    self.driver.react_to(message, "white_check_mark")
                     self.driver.respond_to_web(event, {"update": {"message": f"@{User} Согласовал :white_check_mark:", "props": {}}, }, )
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
