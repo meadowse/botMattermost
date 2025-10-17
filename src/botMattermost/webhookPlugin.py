@@ -301,18 +301,18 @@ class webhookPlugin(Plugin):
                     {
                         "actions": [
                             {
-                                "id": "approve",
+                                "id": "approveStatement",
                                 "name": ":white_check_mark: Согласовать",
                                 "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approve",
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approveStatement",
                                     "context": dict(message=message.body, mustCoordinate=mustCoordinate, )
                                 },
                             },
                             {
-                                "id": "denied",
+                                "id": "deniedStatement",
                                 "name": ":x: Отказать",
                                 "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/denied",
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deniedStatement",
                                     "context": dict(message=message.body, mustCoordinate=mustCoordinate, )
                                 },
                             },
@@ -322,8 +322,8 @@ class webhookPlugin(Plugin):
             }
             self.driver.reply_to(message, '', props=props)
 
-    @listen_webhook("denied")
-    async def denied(self, event: WebHookEvent):
+    @listen_webhook("deniedStatement")
+    async def deniedStatement(self, event: WebHookEvent):
         context = event.body.get('context')
         message = Message(context.get('message'))
         try:
@@ -343,8 +343,8 @@ class webhookPlugin(Plugin):
             log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
-    @listen_webhook("approve")
-    async def approve(self, event: WebHookEvent):
+    @listen_webhook("approveStatement")
+    async def approveStatement(self, event: WebHookEvent):
         context = event.body.get('context')
         message = Message(context.get('message'))
         try:
