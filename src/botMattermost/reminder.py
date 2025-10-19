@@ -439,11 +439,11 @@ def send_and_update_docs_reminders():
                                 },
                             },
                             {
-                                "id": "cancel",
+                                "id": "cancelDocs",
                                 "name": ":x: Аннулировать",
                                 "integration": {
                                     "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/cancel",
+                                           "hooks/cancelDocs",
                                     "context": dict(
                                         text=":x: Аннулировать",
                                         message=remind_message,

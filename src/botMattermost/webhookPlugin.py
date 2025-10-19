@@ -61,8 +61,8 @@ class webhookPlugin(Plugin):
                 f"@{event.body.get('user_name')} у тебя нет прав нажимать {event.context.get('text')}"
             )
 
-    @listen_webhook("cancel")
-    async def cancel(self, event: WebHookEvent):
+    @listen_webhook("cancelDocs")
+    async def cancelDocs(self, event: WebHookEvent):
         if event.body.get('user_name') in event.context.get("managerNicknames"):
             set_value_by_id('T213', 'F4570', 'Аннулирован', event.context.get("doc_id"))
             set_value_by_id('T213', 'F4666', 'NULL', event.context.get("doc_id"))
@@ -117,7 +117,7 @@ class webhookPlugin(Plugin):
     async def agreement(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
         if message.sender_name == 'notify_docs_bot':
-            headDepartment = message.text.split('Рук отдела: @')[1].split()[0]
+            headDepartment = (message.text.split('Рук отдела: @')[1].split()[0], 'a.bukreev', )
             props = {
                 "attachments": [
                     {
@@ -143,7 +143,7 @@ class webhookPlugin(Plugin):
                 ]
             }
             self.driver.reply_to(message, f'Рук отдела @{headDepartment}', props=props)
-            pRM = message.text.split('ПрМ: @')[1].split()[0]
+            pRM = (message.text.split('ПрМ: @')[1].split()[0], 'a.bukreev', )
             props = {
                 "attachments": [
                     {
@@ -176,7 +176,7 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         try:
             User = event.body.get('user_name')
-            if User == context.get("pRM"):
+            if User in context.get("pRM"):
                 with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                          password=config.password, charset=config.charset) as con:
                     today = datetime.datetime.strftime(datetime.date.today(), '%Y-%m-%d')
@@ -206,7 +206,7 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         try:
             User = event.body.get('user_name')
-            if User == context.get("pRM"):
+            if User in context.get("pRM"):
                 with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                          password=config.password, charset=config.charset) as con:
                     today = datetime.datetime.strftime(datetime.date.today(), '%Y-%m-%d')
@@ -236,7 +236,7 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         try:
             User = event.body.get('user_name')
-            if User == context.get("headDepartment"):
+            if User in context.get("headDepartment"):
                 with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                          password=config.password, charset=config.charset) as con:
                     today = datetime.datetime.strftime(datetime.date.today(), '%Y-%m-%d')
@@ -266,7 +266,7 @@ class webhookPlugin(Plugin):
         message = Message(context.get('message'))
         try:
             User = event.body.get('user_name')
-            if User == context.get("headDepartment"):
+            if User in context.get("headDepartment"):
                 with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                          password=config.password, charset=config.charset) as con:
                     today = datetime.datetime.strftime(datetime.date.today(), '%Y-%m-%d')
@@ -445,7 +445,7 @@ class webhookPlugin(Plugin):
                         "actions": [
                             {
                                 "id": "delete",
-                                "name": "❌Удалить",
+                                "name": "❌ Удалить",
                                 "integration": {
                                     "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/delete",
                                     "context": dict(message=message.body, managerNicknames=managerNicknames, )
@@ -453,7 +453,7 @@ class webhookPlugin(Plugin):
                             },
                             {
                                 "id": "reactTo",
-                                "name": "⛔Неквал",
+                                "name": "⛔ Неквал",
                                 "integration": {
                                     "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/reactTo",
                                     "context": dict(message=message.body, managerNicknames=managerNicknames, )
@@ -461,7 +461,7 @@ class webhookPlugin(Plugin):
                             },
                             {
                                 "id": "createLead",
-                                "name": "🚩Создать Лида",
+                                "name": "🚩 Создать Лида",
                                 "integration": {
                                     "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createLead",
                                     "context": dict(message=message.body, )
@@ -469,7 +469,7 @@ class webhookPlugin(Plugin):
                             },
                             {
                                 "id": "createKP",
-                                "name": "💲Создать КП",
+                                "name": "💲 Создать КП",
                                 "integration": {
                                     "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/createKP",
                                     "context": dict(message=message.body, )
@@ -603,8 +603,7 @@ class webhookPlugin(Plugin):
                                    {"update": {"message": f"@{User} создал запись о Лиде № {num}", "props": {}, }, }, )
 
     @listen_to("задач", re.IGNORECASE)
-    async def hello(self, message: Message):
-        # log.info(message.body)
+    async def task(self, message: Message):
         if message.body.get('data').get('post').get('reply_count') == 0:
             mes_json = {
                 'attachments': [
@@ -619,10 +618,10 @@ class webhookPlugin(Plugin):
                                 }
                             },
                             {
-                                'id': 'cncelTask',
+                                'id': 'deleteTask',
                                 'name': 'Отмена',
                                 'integration': {
-                                    'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cncelTask',
+                                    'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/deleteTask',
                                     'context': message.body,
                                 }
                             }
@@ -632,8 +631,8 @@ class webhookPlugin(Plugin):
             }
             self.driver.reply_to(message, '', props=mes_json)
 
-    @listen_webhook("cncelTask")
-    async def cncelTask(self, event: WebHookEvent):
+    @listen_webhook("deleteTask")
+    async def deleteTask(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
         response = requests.delete(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{event.body.get('post_id')}", headers=config.headers)
         if response.status_code == 200:
@@ -734,27 +733,17 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("addTask")
     async def addTask(self, event: WebHookEvent):
-        # log.info(event.body)
         Dict = json.loads(event.body['callback_id'])
-        # log.info(Dict)
         msg_body = Dict.get('context')
         msg = Message(msg_body)
-        # log.info(json.dumps(msg.body, indent=4, sort_keys=True, ensure_ascii=False))
         try:
             idMessage = msg.reply_id
-            # log.info(idMessage)
             task = event.body.get('submission').get('task')
-            # log.info(task)
             comment = event.body.get('submission').get('comment')
-            # log.info(comment)
             dateStart = event.body.get('submission').get('dateStart')
-            # log.info(dateStart)
             deadline = event.body.get('submission').get('dateEnd')
-            # log.info(deadline)
             directorId = event.body.get('user_id')
-            # log.info(directorId)
             executorId = event.body.get('submission').get('executor')
-            # log.info(executorId)
             plannedTimeCosts = event.body.get('submission').get('plannedTimeCosts')
             with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                       password=config.password, charset=config.charset) as con):
@@ -762,7 +751,6 @@ class webhookPlugin(Plugin):
                 sql = f"SELECT ID FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"
                 cur.execute(sql)
                 contractId = cur.fetchone()
-                # log.info(contractId)
                 if contractId is not None:
                     contractId = contractId[0]
                 sql = f"SELECT ID, F4932 FROM T3 WHERE F16 = '{directorId}'"
@@ -770,30 +758,17 @@ class webhookPlugin(Plugin):
                 directorData = cur.fetchone()
                 directorId = directorData[0]
                 director = directorData[1]
-                # log.info(directorData)
                 sql = f"SELECT ID, F4932 FROM T3 WHERE F16 = '{executorId}'"
                 cur.execute(sql)
                 executorData = cur.fetchone()
                 executorId = executorData[0]
                 executor = executorData[1]
-                # log.info(executorData)
                 cur.execute(f'SELECT GEN_ID(GEN_T218, 1) FROM RDB$DATABASE')
                 ID = cur.fetchonemap().get('GEN_ID', None)
                 values = {
-                    'id': ID,
-                    'F4691': contractId,
-                    'F4695': task,
-                    'F4698': comment,
-                    'F4970': dateStart,
-                    'F5569': dateStart,
-                    'F4696': deadline,
-                    'F4693': directorId,  # должно быть ID пользователя
-                    'F4694': executorId,
-                    'F4697': 0,
-                    'F5451': idMessage,
-                    'F5872': 'Новая',
-                    'F5889': plannedTimeCosts,
-                }
+                    'id': ID, 'F4691': contractId, 'F4695': task, 'F4698': comment, 'F4970': dateStart,
+                    'F5569': dateStart, 'F4696': deadline, 'F4693': directorId,  # должно быть ID пользователя
+                    'F4694': executorId, 'F4697': 0, 'F5451': idMessage, 'F5872': 'Новая', 'F5889': plannedTimeCosts}
                 sql_values = []
                 for key, value in values.items():
                     if value is None:
@@ -818,16 +793,67 @@ class webhookPlugin(Plugin):
                 message += 'Статус: :new: *Новая* :new:\n:large_yellow_circle: *Задача ожидает исполнения...*'
                 data = {'id': Dict.get('post_id'), 'message': message}
                 response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
-                                        json=data, headers=config.headers)
+                                        json=data, headers=config.headers_notify_tasks_bot)
                 if response.status_code == 200:
                     log.info('Message sent successfully.')
                     log.info(response.json())
                 else:
                     log.info(f'Failed to send message: {response.status_code}, {response.text}')
-                # log.info(json.dumps(Dict, indent=4, sort_keys=True, ensure_ascii=False))
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
         log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
+
+    # @listen_to("Добавлена :hammer_and_wrench: Задача :hammer_and_wrench: by @")
+    # async def changingTask(self, message: Message):
+    #     mes_json = {
+    #         'attachments': [
+    #             {
+    #                 "actions": [
+    #                     {
+    #                         "id": "takeWork",
+    #                         "name": "Взять в работу :molot:",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
+    #                             "context": message.body,
+    #                         }
+    #                     },
+    #                     {
+    #                         "id": "done",
+    #                         "name": "Выполнено :white_check_mark:",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/done",
+    #                             "context": message.body,
+    #                         }
+    #                     },
+    #                     {
+    #                         "id": "acceptJob",
+    #                         "name": "Принять работу :+1:",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/acceptJob",
+    #                             "context": message.body,
+    #                         }
+    #                     },
+    #                     {
+    #                         "id": "getBackWork",
+    #                         "name": "Вернуть в работу :leftwards_arrow_with_hook:",
+    #                         "integration": {
+    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/getBackWork",
+    #                             "context": message.body,
+    #                         }
+    #                     },
+    #                     {
+    #                         'id': 'cancelTask',
+    #                         'name': 'Отменить :x:',
+    #                         'integration': {
+    #                             'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cancelTask',
+    #                             'context': message.body,
+    #                         }
+    #                     }
+    #                 ]
+    #             }
+    #         ]
+    #     }
+    #     self.driver.reply_to(message, '', props=mes_json)
 
     # @listen_webhook("complete")
     # async def complete(self, event: WebHookEvent):
