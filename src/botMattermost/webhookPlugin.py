@@ -142,7 +142,7 @@ class webhookPlugin(Plugin):
                     }
                 ]
             }
-            self.driver.reply_to(message, f'Рук отдела @{headDepartment}', props=props)
+            self.driver.reply_to(message, f'Рук отдела @{headDepartment[0]}', props=props)
             pRM = (message.text.split('ПрМ: @')[1].split()[0], 'a.bukreev', )
             props = {
                 "attachments": [
@@ -168,7 +168,7 @@ class webhookPlugin(Plugin):
                     }
                 ]
             }
-            self.driver.reply_to(message, f'Прм @{pRM}', props=props)
+            self.driver.reply_to(message, f'Прм @{pRM[0]}', props=props)
 
     @listen_webhook("deniedPRM")
     async def deniedPRM(self, event: WebHookEvent):
@@ -437,7 +437,7 @@ class webhookPlugin(Plugin):
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        if (message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' or message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay') and message.body.get('data').get('post').get('reply_count') == 0:
+        if message.channel_id == 'kbcyc66jbtbcubs93h43nf19dy' and message.body.get('data').get('post').get('reply_count') == 0:
             managerNicknames = ['a.bukreev', 'a.lavruhin', 'maxulanov', 'b.musaev', 'm.pryamorukov', ]  # список тех, кто может удалять и менять статус КП
             props = {
                 "attachments": [
@@ -802,58 +802,6 @@ class webhookPlugin(Plugin):
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
         log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
-
-    # @listen_to("Добавлена :hammer_and_wrench: Задача :hammer_and_wrench: by @")
-    # async def changingTask(self, message: Message):
-    #     mes_json = {
-    #         'attachments': [
-    #             {
-    #                 "actions": [
-    #                     {
-    #                         "id": "takeWork",
-    #                         "name": "Взять в работу :molot:",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
-    #                             "context": message.body,
-    #                         }
-    #                     },
-    #                     {
-    #                         "id": "done",
-    #                         "name": "Выполнено :white_check_mark:",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/done",
-    #                             "context": message.body,
-    #                         }
-    #                     },
-    #                     {
-    #                         "id": "acceptJob",
-    #                         "name": "Принять работу :+1:",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/acceptJob",
-    #                             "context": message.body,
-    #                         }
-    #                     },
-    #                     {
-    #                         "id": "getBackWork",
-    #                         "name": "Вернуть в работу :leftwards_arrow_with_hook:",
-    #                         "integration": {
-    #                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/getBackWork",
-    #                             "context": message.body,
-    #                         }
-    #                     },
-    #                     {
-    #                         'id': 'cancelTask',
-    #                         'name': 'Отменить :x:',
-    #                         'integration': {
-    #                             'url': f'{config.webhook_host_url}:{config.webhook_host_port}/hooks/cancelTask',
-    #                             'context': message.body,
-    #                         }
-    #                     }
-    #                 ]
-    #             }
-    #         ]
-    #     }
-    #     self.driver.reply_to(message, '', props=mes_json)
 
     # @listen_webhook("complete")
     # async def complete(self, event: WebHookEvent):
