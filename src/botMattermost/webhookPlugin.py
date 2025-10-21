@@ -795,15 +795,7 @@ class webhookPlugin(Plugin):
                 message += f'Планируемые времязатраты: :clock3: *{plannedTimeCosts}ч.*\n' if plannedTimeCosts is not None and plannedTimeCosts != '0' else ''
                 message += 'Статус: :new: *Новая* :new:\n:large_yellow_circle: *Задача ожидает исполнения...*'
                 data = {'channel_id': Dict.get('channel_id'), 'message': message, 'root_id': msg.reply_id}
-                response = requests.delete(
-                    f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
-                    headers=config.headers)
-                if response.status_code == 200:
-                    log.info('Message sent successfully.')
-                    log.info(response.json())
-                else:
-                    log.info(f'Failed delete message: {response.status_code}, {response.text}')
-                    self.driver.reply_to(msg, f'Failed delete message: {response.status_code}, {response.text}')
+                self.driver.respond_to_web(event, {"update": {"message": '', "props": {}}, }, )
                 response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts", json=data,
                                          headers=config.headers_notify_tasks_bot)
                 if response.status_code == 201:
