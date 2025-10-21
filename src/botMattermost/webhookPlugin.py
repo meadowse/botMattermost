@@ -444,10 +444,10 @@ class webhookPlugin(Plugin):
                     {
                         "actions": [
                             {
-                                "id": "delete",
+                                "id": "deleteMessage",
                                 "name": "❌ Удалить",
                                 "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/delete",
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deleteMessage",
                                     "context": dict(message=message.body, managerNicknames=managerNicknames, )
                                 },
                             },
@@ -551,8 +551,8 @@ class webhookPlugin(Plugin):
                 finally:
                     server.quit()
 
-    @listen_webhook("delete")
-    async def delete(self, event: WebHookEvent):
+    @listen_webhook("deleteMessage")
+    async def deleteMessage(self, event: WebHookEvent):
         # log.info(json.dumps(event.body, indent=4, sort_keys=True, ensure_ascii=False))
         context = event.body.get('context')
         message = Message(context.get('message'))
