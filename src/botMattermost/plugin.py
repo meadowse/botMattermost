@@ -154,10 +154,10 @@ class SearchPlugin(Plugin):
                     cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {directorId}')
                     director = cur.fetchone()[0]
                     if director == User:
-                        cur.execute(f"UPDATE T218 SET F5872 = 'Отмененная' WHERE F5451 = '{message.reply_id}'")
+                        cur.execute(f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 1 WHERE F5451 = '{message.reply_id}'")
                         con.commit()
-                        editMessage(message.reply_id, cur)
-                        self.driver.respond_to_web(event, {"update": {"message": "", "props": {}}, }, )
+                        textMessage = editMessage(message.reply_id, cur)
+                        self.driver.respond_to_web(event, {"update": {"message": textMessage, "props": {}}, }, )
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
@@ -170,19 +170,17 @@ def editMessage(replyId, cur):
     cur.execute(f"""SELECT ID AS id,
     F4695 AS task,
     F4698 AS comment,
-    F5724 AS typeWorkId,
     F5569 AS dateStart,
     F4696 AS deadline,
     F4697 AS done,
     F4708 AS today,
     F4693 AS directorId,
     F4694 AS executorId,
-    F5646 AS parenId,
     F5872 AS status,
     F5889 AS plannedTimeCosts FROM T218 WHERE F5451 = '{replyId}'""")
     taskData = cur.fetchone()
-    columns = ('id', 'task', 'comment', 'typeWorkId', 'dateStart', 'deadline', 'done', 'today', 'directorId', 'directorId',
-               'executorId', 'parenId', 'status', 'plannedTimeCosts')
+    columns = ('id', 'task', 'comment', 'dateStart', 'deadline', 'done', 'today', 'directorId', 'executorId', 'status',
+               'plannedTimeCosts')
     jsonResult = {col: value for col, value in zip(columns, taskData)}
     sql = f"SELECT F4932 FROM T3 WHERE ID = {jsonResult.get('directorId')}"
     cur.execute(sql)
@@ -192,20 +190,20 @@ def editMessage(replyId, cur):
     executor = cur.fetchone()[0]
     done = jsonResult.get('done')
     message = f"**{'Изменена' if done != 1 else 'Завершена'} :hammer_and_wrench: Задача :hammer_and_wrench: by @{director}**\n"
-    message += f'Дата добавления: *{jsonResult.get('dateStart')}*\n'
-    message += f'Постановщик: *@{director}*\n'
-    message += f'Исполнитель: *@{executor}*\n'
-    message += f'Задача: :hammer: *{jsonResult.get('task')}*\n'
-    message += f'Deadline: :calendar: *{jsonResult.get('deadline')}*\n'
+    message += f"Дата добавления: *{jsonResult.get('dateStart')}*\n"
+    message += f"Постановщик: *@{director}*\n"
+    message += f"Исполнитель: *@{executor}*\n"
+    message += f"Задача: :hammer: *{jsonResult.get('task')}*\n"
+    message += f"Deadline: :calendar: *{jsonResult.get('deadline')}*\n"
     comment = jsonResult.get('comment')
     if comment != '':
-        message += f'Комментарий: :speech_balloon: *{comment}*\n'
-    message += f'Планируемые времязатраты: :clock3: *{jsonResult.get('plannedTimeCosts')}ч.*\n'
+        message += f"Комментарий: :speech_balloon: *{comment}*\n"
+    message += f"Планируемые времязатраты: :clock3: *{jsonResult.get('plannedTimeCosts')}ч.*\n"
     sql = f"SELECT SUM(F5882) FROM T320 WHERE F5862 = {jsonResult.get('id')}"
     cur.execute(sql)
     currentTimeCosts = cur.fetchone()[0]
     if currentTimeCosts is not None:
-        message += f'Текущие времязатраты: :clock3: *{currentTimeCosts}ч.*\n'
+        message += f"Текущие времязатраты: :clock3: *{currentTimeCosts}ч.*\n"
     statusEmoji = ''
     status = jsonResult.get('status')
     match status:
@@ -219,5 +217,6 @@ def editMessage(replyId, cur):
             statusEmoji = ':thumbsup:'
         case 'Отмененная':
             statusEmoji = ':x:'
-    message += f'Статус: {statusEmoji} *{status}* {statusEmoji}\n'
-    message += ':large_yellow_circle: *Задача ожидает завершения...*' if done != 1 else f':large_green_circle: *Задача завершена {jsonResult.get('today')}*'
+    message += f"Статус: {statusEmoji} *{status}* {statusEmoji}\n"
+    message += ":large_yellow_circle: *Задача ожидает завершения...*" if done != 1 else f":large_green_circle: *Задача завершена {jsonResult.get('today')}*"
+    return message

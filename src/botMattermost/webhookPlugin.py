@@ -719,6 +719,7 @@ class webhookPlugin(Plugin):
                             "name": "plannedTimeCosts",
                             "type": "text",
                             'subtype': 'number',
+                            "optional": True
                         }
                     ],
                     "submit_label": "Cоздать",
