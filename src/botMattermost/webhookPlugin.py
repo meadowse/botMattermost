@@ -746,6 +746,8 @@ class webhookPlugin(Plugin):
             directorId = event.body.get('user_id')
             executorId = event.body.get('submission').get('executor')
             plannedTimeCosts = event.body.get('submission').get('plannedTimeCosts')
+            if plannedTimeCosts == '':
+                plannedTimeCosts = None
             with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                       password=config.password, charset=config.charset) as con):
                 cur = con.cursor()
