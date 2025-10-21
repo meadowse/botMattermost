@@ -792,17 +792,26 @@ class webhookPlugin(Plugin):
                 message += f'Комментарий: :speech_balloon: *{comment}*\n' if comment is not None and comment != '' else ''
                 message += f'Планируемые времязатраты: :clock3: *{plannedTimeCosts}ч.*\n' if plannedTimeCosts is not None and plannedTimeCosts != '0' else ''
                 message += 'Статус: :new: *Новая* :new:\n:large_yellow_circle: *Задача ожидает исполнения...*'
-                data = {'id': Dict.get('post_id'), 'message': message}
-                response = requests.put(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
-                                        json=data, headers=config.headers_notify_tasks_bot)
+                data = {'channel_id': Dict.get('channel_id'), 'message': message, 'root_id': msg.reply_id}
+                response = requests.delete(
+                    f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{Dict.get('post_id')}",
+                    headers=config.headers)
                 if response.status_code == 200:
                     log.info('Message sent successfully.')
                     log.info(response.json())
                 else:
+                    log.info(f'Failed delete message: {response.status_code}, {response.text}')
+                    self.driver.reply_to(msg, f'Failed delete message: {response.status_code}, {response.text}')
+                response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts", json=data,
+                                         headers=config.headers_notify_tasks_bot)
+                if response.status_code == 201:
+                    log.info('Message sent successfully.')
+                    log.info(response.json())
+                else:
                     log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                    self.driver.reply_to(msg, f'Failed to send message: {response.status_code}, {response.text}')
         except Exception as ex:
             self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
-        log.info(f"Веб-хук addTask выполнен: {datetime.datetime.now()}")
 
     # @listen_webhook("complete")
     # async def complete(self, event: WebHookEvent):
