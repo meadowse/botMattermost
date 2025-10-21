@@ -43,7 +43,7 @@ class Section:
         return res
 
 class SearchPlugin(Plugin):
-    @listen_to("Статус: :new: *Новая* :new:")
+    @listen_to("Статус: :new: \*Новая\* :new:")
     async def newTask(self, message: Message):
         if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay':
             mes_json = {
@@ -70,9 +70,10 @@ class SearchPlugin(Plugin):
                     }
                 ]
             }
+            deleteButtons(self, message)
             self.driver.reply_to(message, '', props=mes_json)
 
-    @listen_to("Статус: :molot: *В работе* :molot:")
+    @listen_to("Статус: :molot: \*В работе\* :molot:")
     async def workTask(self, message: Message):
         if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay':
             mes_json = {
@@ -99,9 +100,10 @@ class SearchPlugin(Plugin):
                     }
                 ]
             }
+            deleteButtons(self, message)
             self.driver.reply_to(message, '', props=mes_json)
 
-    @listen_to("Статус: :white_check_mark: *Выполненная* :white_check_mark:")
+    @listen_to("Статус: :white_check_mark: \*Выполненная\* :white_check_mark:")
     async def completedTask(self, message: Message):
         if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay':
             mes_json = {
@@ -136,12 +138,14 @@ class SearchPlugin(Plugin):
                     }
                 ]
             }
+            deleteButtons(self, message)
             self.driver.reply_to(message, '', props=mes_json)
 
     @listen_webhook("cancelTask")
     async def cancelTask(self, event: WebHookEvent):
-        context = event.body.get('context')
-        message = Message(context.get('message'))
+        Data = event.body
+        context = Data.get('context')
+        message = Message(context)
         try:
             User = event.body.get('user_name')
             with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
@@ -149,15 +153,27 @@ class SearchPlugin(Plugin):
                 cur = con.cursor()
                 cur.execute(f"SELECT F4693 AS directorId FROM T218 WHERE F5451 = '{message.reply_id}'")
                 director = cur.fetchone()
-                if len(director) != 0:
+                if director is not None:
                     directorId = director[0]
                     cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {directorId}')
                     director = cur.fetchone()[0]
                     if director == User:
-                        cur.execute(f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 1 WHERE F5451 = '{message.reply_id}'")
+                        cur.execute(f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 0 WHERE F5451 = '{message.reply_id}'")
                         con.commit()
                         textMessage = editMessage(message.reply_id, cur)
-                        self.driver.respond_to_web(event, {"update": {"message": textMessage, "props": {}}, }, )
+                        data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                                'root_id': message.reply_id}
+                        response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
+                                                 json=data,
+                                                 headers=config.headers_notify_tasks_bot)
+                        if response.status_code == 201:
+                            log.info('Message sent successfully.')
+                            log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                        else:
+                            log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                            self.driver.reply_to(message,
+                                                 f'Failed to send message: {response.status_code}, {response.text}')
+                        deleteButtons(self, message)
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
@@ -165,6 +181,223 @@ class SearchPlugin(Plugin):
         except Exception as error:
             log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+    @listen_webhook("takeWork")
+    async def takeWork(self, event: WebHookEvent):
+        Data = event.body
+        context = Data.get('context')
+        message = Message(context)
+        try:
+            User = event.body.get('user_name')
+            with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                     password=config.password, charset=config.charset) as con:
+                cur = con.cursor()
+                cur.execute(f"SELECT F4694 AS executorId FROM T218 WHERE F5451 = '{message.reply_id}'")
+                executor = cur.fetchone()
+                if executor is not None:
+                    executorId = executor[0]
+                    cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {executorId}')
+                    executor = cur.fetchone()[0]
+                    if executor == User:
+                        cur.execute(f"SELECT F5872 AS status FROM T218 WHERE F5451 = '{message.reply_id}'")
+                        status = cur.fetchone()[0]
+                        if status == 'Новая':
+                            cur.execute(
+                                f"UPDATE T218 SET F5872 = 'В работе', F4697 = 0 WHERE F5451 = '{message.reply_id}'")
+                            con.commit()
+                            textMessage = editMessage(message.reply_id, cur)
+                            data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                                    'root_id': message.reply_id}
+                            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
+                                                     json=data,
+                                                     headers=config.headers_notify_tasks_bot)
+                            if response.status_code == 201:
+                                log.info('Message sent successfully.')
+                                log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                            else:
+                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                self.driver.reply_to(message,
+                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                        else:
+                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
+                        deleteButtons(self, message)
+                    else:
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
+                else:
+                    self.driver.reply_to(message, 'В базе не сохранён messageId')
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+    @listen_webhook("done")
+    async def done(self, event: WebHookEvent):
+        Data = event.body
+        context = Data.get('context')
+        message = Message(context)
+        try:
+            User = event.body.get('user_name')
+            with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                     password=config.password, charset=config.charset) as con:
+                cur = con.cursor()
+                cur.execute(f"SELECT F4694 AS executorId FROM T218 WHERE F5451 = '{message.reply_id}'")
+                executor = cur.fetchone()
+                if executor is not None:
+                    executorId = executor[0]
+                    cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {executorId}')
+                    executor = cur.fetchone()[0]
+                    if executor == User:
+                        cur.execute(f"SELECT F5872 AS status FROM T218 WHERE F5451 = '{message.reply_id}'")
+                        status = cur.fetchone()[0]
+                        if status == 'В работе':
+                            cur.execute(
+                                f"UPDATE T218 SET F5872 = 'Выполненная', F4697 = 0 WHERE F5451 = '{message.reply_id}'")
+                            con.commit()
+                            textMessage = editMessage(message.reply_id, cur)
+                            data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                                    'root_id': message.reply_id}
+                            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
+                                                     json=data,
+                                                     headers=config.headers_notify_tasks_bot)
+                            if response.status_code == 201:
+                                log.info('Message sent successfully.')
+                                log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                            else:
+                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                self.driver.reply_to(message,
+                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                        else:
+                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
+                        deleteButtons(self, message)
+                    else:
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
+                else:
+                    self.driver.reply_to(message, 'В базе не сохранён messageId')
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+    @listen_webhook("acceptJob")
+    async def acceptJob(self, event: WebHookEvent):
+        Data = event.body
+        context = Data.get('context')
+        message = Message(context)
+        try:
+            User = event.body.get('user_name')
+            with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                     password=config.password, charset=config.charset) as con:
+                cur = con.cursor()
+                cur.execute(f"SELECT F4693 AS directorId FROM T218 WHERE F5451 = '{message.reply_id}'")
+                director = cur.fetchone()
+                if director is not None:
+                    directorId = director[0]
+                    cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {directorId}')
+                    director = cur.fetchone()[0]
+                    if director == User:
+                        cur.execute(f"SELECT F5872 AS status FROM T218 WHERE F5451 = '{message.reply_id}'")
+                        status = cur.fetchone()[0]
+                        if status == 'Выполненная':
+                            today = datetime.date.today().strftime('%Y-%m-%d')
+                            cur.execute(
+                                f"UPDATE T218 SET F5872 = 'Завершенная', F4697 = 1, F4708 = '{today}' WHERE F5451 = '{message.reply_id}'")
+                            con.commit()
+                            textMessage = editMessage(message.reply_id, cur)
+                            data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                                    'root_id': message.reply_id}
+                            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
+                                                     json=data,
+                                                     headers=config.headers_notify_tasks_bot)
+                            if response.status_code == 201:
+                                log.info('Message sent successfully.')
+                                log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                            else:
+                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                self.driver.reply_to(message,
+                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                        else:
+                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
+                        deleteButtons(self, message)
+                    else:
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
+                else:
+                    self.driver.reply_to(message, 'В базе не сохранён messageId')
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+    @listen_webhook("getBackWork")
+    async def getBackWork(self, event: WebHookEvent):
+        Data = event.body
+        context = Data.get('context')
+        message = Message(context)
+        try:
+            User = event.body.get('user_name')
+            with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
+                                     password=config.password, charset=config.charset) as con:
+                cur = con.cursor()
+                cur.execute(f"SELECT F4693 AS directorId FROM T218 WHERE F5451 = '{message.reply_id}'")
+                director = cur.fetchone()
+                if director is not None:
+                    directorId = director[0]
+                    cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {directorId}')
+                    director = cur.fetchone()[0]
+                    if director == User:
+                        cur.execute(f"SELECT F5872 AS status FROM T218 WHERE F5451 = '{message.reply_id}'")
+                        status = cur.fetchone()[0]
+                        if status == 'Выполненная':
+                            cur.execute(
+                                f"UPDATE T218 SET F5872 = 'В работе', F4697 = 0 WHERE F5451 = '{message.reply_id}'")
+                            con.commit()
+                            textMessage = editMessage(message.reply_id, cur)
+                            data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                                    'root_id': message.reply_id}
+                            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
+                                                     json=data,
+                                                     headers=config.headers_notify_tasks_bot)
+                            if response.status_code == 201:
+                                log.info('Message sent successfully.')
+                                log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                            else:
+                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                self.driver.reply_to(message,
+                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                        else:
+                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
+                        deleteButtons(self, message)
+                    else:
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
+                else:
+                    self.driver.reply_to(message, 'В базе не сохранён messageId')
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+
+def deleteButtons(self, message):
+    response = requests.get(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}/thread",
+                            headers=config.headers_notify_tasks_bot)
+    if response.status_code == 200:
+        log.info('Message sent successfully.')
+        responseJson = response.json()
+        log.info(json.dumps(responseJson, indent=4, sort_keys=True, ensure_ascii=False))
+        messages = responseJson.get('order')
+        for message in messages:
+            if responseJson.get('posts').get(message).get('props') not in [
+                {"from_bot": "true"}, {"disable_group_highlight": True}, {"disable_group_highlight": False}]:
+                data = {'id': message}
+                response = requests.put(
+                    f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message}",
+                    json=data, headers=config.headers_notify_tasks_bot)
+                if response.status_code == 200:
+                    log.info('Message sent successfully.')
+                    log.info(
+                        json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                else:
+                    log.info(f'Failed to update message: {response.status_code}, {response.text}')
+                    self.driver.reply_to(message,
+                                         f'Failed to update message: {response.status_code}, {response.text}')
+    else:
+        log.info(f'Failed get data message: {response.status_code}, {response.text}')
+        self.driver.reply_to(message,
+                             f'Failed get data message: {response.status_code}, {response.text}')
 
 def editMessage(replyId, cur):
     cur.execute(f"""SELECT ID AS id,
@@ -198,7 +431,9 @@ def editMessage(replyId, cur):
     comment = jsonResult.get('comment')
     if comment != '':
         message += f"Комментарий: :speech_balloon: *{comment}*\n"
-    message += f"Планируемые времязатраты: :clock3: *{jsonResult.get('plannedTimeCosts')}ч.*\n"
+    plannedTimeCosts = jsonResult.get('plannedTimeCosts')
+    if plannedTimeCosts is not None:
+        message += f"Планируемые времязатраты: :clock3: *{jsonResult.get('plannedTimeCosts')}ч.*\n"
     sql = f"SELECT SUM(F5882) FROM T320 WHERE F5862 = {jsonResult.get('id')}"
     cur.execute(sql)
     currentTimeCosts = cur.fetchone()[0]
@@ -218,5 +453,6 @@ def editMessage(replyId, cur):
         case 'Отмененная':
             statusEmoji = ':x:'
     message += f"Статус: {statusEmoji} *{status}* {statusEmoji}\n"
-    message += ":large_yellow_circle: *Задача ожидает завершения...*" if done != 1 else f":large_green_circle: *Задача завершена {jsonResult.get('today')}*"
+    if status != 'Отмененная':
+        message += ":large_yellow_circle: *Задача ожидает завершения...*" if done != 1 else f":large_green_circle: *Задача завершена {jsonResult.get('today')}*"
     return message
