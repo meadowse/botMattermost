@@ -836,7 +836,6 @@ class webhookPlugin(Plugin):
 
     @listen_to("Статус: :new: \*Новая\* :new:")
     async def newTask(self, message: Message):
-        if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay':
             mes_json = {
                 'attachments': [
                     {
@@ -866,7 +865,6 @@ class webhookPlugin(Plugin):
 
     @listen_to("Статус: :molot: \*В работе\* :molot:")
     async def workTask(self, message: Message):
-        if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay':
             mes_json = {
                 'attachments': [
                     {
@@ -896,7 +894,6 @@ class webhookPlugin(Plugin):
 
     @listen_to("Статус: :white_check_mark: \*Выполненная\* :white_check_mark:")
     async def completedTask(self, message: Message):
-        if message.channel_id == 'xcuskm3u9pbz9c5yqp6o49iuay':
             mes_json = {
                 'attachments': [
                     {
