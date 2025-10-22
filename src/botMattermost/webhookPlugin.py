@@ -1164,9 +1164,10 @@ def deleteButtons(self, message):
         log.info(json.dumps(responseJson, indent=4, sort_keys=True, ensure_ascii=False))
         messages = responseJson.get('order')
         for message in messages:
-            if responseJson.get('posts').get(message).get('props') not in [
+            messageData = responseJson.get('posts').get(message)
+            if messageData.get('props') not in [
                 {"from_bot": "true"}, {"disable_group_highlight": True}, {"disable_group_highlight": False}]:
-                data = {'id': message}
+                data = {'id': message, 'message': messageData.get('message')}
                 response = requests.put(
                     f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message}",
                     json=data, headers=config.headers_notify_tasks_bot)
