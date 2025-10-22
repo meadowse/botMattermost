@@ -604,7 +604,7 @@ class webhookPlugin(Plugin):
 
     @listen_to("задач", re.IGNORECASE)
     async def task(self, message: Message):
-        if message.body.get('data').get('post').get('reply_count') == 0:
+        if message.body.get('data').get('post').get('reply_count') == 0 and message.sender_name == 'notify_tasks_bot':
             mes_json = {
                 'attachments': [
                     {
