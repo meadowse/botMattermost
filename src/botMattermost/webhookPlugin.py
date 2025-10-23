@@ -941,7 +941,7 @@ class webhookPlugin(Plugin):
                     director = cur.fetchone()[0]
                     if director == User:
                         cur.execute(
-                            f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 0 WHERE F5451 = '{message.reply_id}'")
+                            f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 1 WHERE F5451 = '{message.reply_id}'")
                         con.commit()
                         textMessage = editMessage(message.reply_id, cur)
                         data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
