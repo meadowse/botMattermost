@@ -1,46 +1,11 @@
 import json
 import requests
-from mmpy_bot import Plugin, listen_to, listen_webhook, WebHookEvent, \
-    ActionEvent, Message
-import re
-from dataclasses import dataclass, asdict
-from typing import Optional
-import click
-from pathlib import Path
-import schedule
+from mmpy_bot import Plugin, listen_to, listen_webhook, WebHookEvent, Message
 from mmpy_bot.plugins.base import log
 import firebirdsql
-import mattermostautodriver
 import datetime
-import asyncio
-from pyexpat.errors import messages
 import config
-from functions import send_message_to_channel, getChannelId
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
-
-@dataclass
-class Field:
-    title: str
-    value: str
-    short: bool = True
-
-@dataclass
-class Section:
-    title: Optional[str] = None
-    text: Optional[str] = None
-    fields: Optional[list[Field]] = None
-    def asdict(self):
-        res = {}
-        if self.fields:
-            res['fields'] = [asdict(field) for field in self.fields]
-        if self.title:
-            res['title'] = str(self.title)
-        if self.text:
-            res['text'] = str(self.text)
-        return res
 
 class SearchPlugin(Plugin):
     @listen_to("Статус: :new: \*Новая\* :new:")
