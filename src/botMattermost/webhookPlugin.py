@@ -940,23 +940,29 @@ class webhookPlugin(Plugin):
                     cur.execute(f'SELECT F4932 FROM T3 WHERE ID = {directorId}')
                     director = cur.fetchone()[0]
                     if director == User:
-                        cur.execute(
-                            f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 1 WHERE F5451 = '{message.reply_id}'")
-                        con.commit()
-                        textMessage = editMessage(message.reply_id, cur)
-                        data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
-                                'root_id': message.reply_id}
-                        response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
-                                                 json=data,
-                                                 headers=config.headers_notify_tasks_bot)
-                        if response.status_code == 201:
-                            log.info('Message sent successfully.')
-                            log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                        cur.execute(f"SELECT F5872 AS status FROM T218 WHERE F5451 = '{message.reply_id}'")
+                        status = cur.fetchone()[0]
+                        if status != 'Завершенная':
+                            today = datetime.date.today().strftime('%Y-%m-%d')
+                            cur.execute(
+                                f"UPDATE T218 SET F5872 = 'Отмененная', F4697 = 1, F4708 = '{today}' WHERE F5451 = '{message.reply_id}'")
+                            con.commit()
+                            textMessage = editMessage(message.reply_id, cur)
+                            data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                                    'root_id': message.reply_id}
+                            response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
+                                                     json=data,
+                                                     headers=config.headers_notify_tasks_bot)
+                            if response.status_code == 201:
+                                log.info('Message sent successfully.')
+                                log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                                deleteButtons(self, message)
+                            else:
+                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                self.driver.reply_to(message,
+                                                     f'Failed to send message: {response.status_code}, {response.text}')
                         else:
-                            log.info(f'Failed to send message: {response.status_code}, {response.text}')
-                            self.driver.reply_to(message,
-                                                 f'Failed to send message: {response.status_code}, {response.text}')
-                        deleteButtons(self, message)
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
@@ -997,13 +1003,13 @@ class webhookPlugin(Plugin):
                             if response.status_code == 201:
                                 log.info('Message sent successfully.')
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                                deleteButtons(self, message)
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
                                 self.driver.reply_to(message,
                                                      f'Failed to send message: {response.status_code}, {response.text}')
                         else:
-                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
-                        deleteButtons(self, message)
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
@@ -1044,13 +1050,13 @@ class webhookPlugin(Plugin):
                             if response.status_code == 201:
                                 log.info('Message sent successfully.')
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                                deleteButtons(self, message)
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
                                 self.driver.reply_to(message,
                                                      f'Failed to send message: {response.status_code}, {response.text}')
                         else:
-                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
-                        deleteButtons(self, message)
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
@@ -1092,13 +1098,13 @@ class webhookPlugin(Plugin):
                             if response.status_code == 201:
                                 log.info('Message sent successfully.')
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                                deleteButtons(self, message)
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
                                 self.driver.reply_to(message,
                                                      f'Failed to send message: {response.status_code}, {response.text}')
                         else:
-                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
-                        deleteButtons(self, message)
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
@@ -1139,13 +1145,13 @@ class webhookPlugin(Plugin):
                             if response.status_code == 201:
                                 log.info('Message sent successfully.')
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
+                                deleteButtons(self, message)
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
                                 self.driver.reply_to(message,
                                                      f'Failed to send message: {response.status_code}, {response.text}')
                         else:
-                            self.driver.reply_to(message, 'Не подходящий статус у задачи')
-                        deleteButtons(self, message)
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
                         self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
                 else:
