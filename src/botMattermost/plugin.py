@@ -15,7 +15,7 @@ import datetime
 import asyncio
 from pyexpat.errors import messages
 import config
-from reminder import send_message_to_channel, getChannelId
+from functions import send_message_to_channel, getChannelId
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
