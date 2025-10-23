@@ -407,60 +407,10 @@ def send_and_update_docs_reminders():
               manager_nickname, project_manager, message_id, channel_id)
         remind_message = f'У документа № {doc_num} (**{doc_name}** {doc_type}) на сумму {format_number(doc_sum)} р. наступила дата ожидаемой оплаты/подписания, \n\
 @{manager_nickname} Просьба связаться с Заказчиком и узнать когда оплатят/подпишут'
-        props = {
-            "props": {
-                "attachments": [
-                    {
-                        "actions": [
-                            {
-                                "id": "underApproval",
-                                "name": ":memo: На согласовании",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/underApproval",
-                                    "context": dict(
-                                        text=":memo: На согласовании",
-                                        message=remind_message,
-                                        managerNicknames=[manager_nickname, project_manager],
-                                    )
-                                },
-                            },
-                            {
-                                "id": "couldNotGetInTouch",
-                                "name": ":shrug: Не удалось связаться",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/couldNotGetInTouch",
-                                    "context": dict(
-                                        text=":shrug: Не удалось связаться",
-                                        message=remind_message,
-                                        managerNicknames=[manager_nickname, project_manager],
-                                    )
-                                },
-                            },
-                            {
-                                "id": "cancelDocs",
-                                "name": ":x: Аннулировать",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/cancelDocs",
-                                    "context": dict(
-                                        text=":x: Аннулировать",
-                                        message=remind_message,
-                                        doc_id=doc_id,
-                                        managerNicknames=[manager_nickname, project_manager],
-                                    )
-                                },
-                            },
-                        ],
-                    }
-                ]
-            }
-        }
         if message_id and channel_id:
             try:
                 send_message_to_thread(
-                    channel_id, message_id, remind_message, props)
+                    channel_id, message_id, remind_message)
                 # Обновляем дату напоминания
                 set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
             except Exception as ex:
@@ -469,7 +419,7 @@ def send_and_update_docs_reminders():
         elif message_id is None and channel_id:
             try:
                 send_message_to_channel(
-                    channel_id, remind_message, None, props)
+                    channel_id, remind_message, None)
                 # Обновляем дату напоминания
                 set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
             except Exception as ex:
