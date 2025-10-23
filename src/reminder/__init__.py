@@ -191,59 +191,9 @@ def send_and_update_kp_reminders():
 @{manager_nickname} Просьба связаться с Заказчиком и получить обратную связь по нашему КП'
         print(kp_id, kp_num, message_id, date_send, manager_id, date_remind, kp_status, new_date_remind,
               manager_nickname, root_id, remind_message)
-        props = {
-            "props": {
-                "attachments": [
-                    {
-                        "actions": [
-                            {
-                                "id": "underApproval",
-                                "name": ":memo: На согласовании",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/underApproval",
-                                    "context": dict(
-                                        text=":memo: На согласовании",
-                                        message=remind_message,
-                                        managerNicknames=[manager_nickname],
-                                    )
-                                },
-                            },
-                            {
-                                "id": "couldNotGetInTouch",
-                                "name": ":shrug: Не удалось связаться",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/couldNotGetInTouch",
-                                    "context": dict(
-                                        text=":shrug: Не удалось связаться",
-                                        message=remind_message,
-                                        managerNicknames=[manager_nickname],
-                                    )
-                                },
-                            },
-                            {
-                                "id": "failure",
-                                "name": ":x: Провал",
-                                "integration": {
-                                    "url": f"{webhook_host_url}:{webhook_host_port}/"
-                                           "hooks/failure",
-                                    "context": dict(
-                                        text=":x: Провал",
-                                        message=remind_message,
-                                        kp_id=kp_id,
-                                        managerNicknames=[manager_nickname],
-                                    )
-                                },
-                            },
-                        ],
-                    }
-                ]
-            }
-        }
         try:
             send_message_to_thread(
-                'kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message, props)
+                'kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message)
             # Обновляем дату напоминания
             set_value_by_id('T209', 'F4529', new_date_remind, kp_id)
         except Exception as ex:
