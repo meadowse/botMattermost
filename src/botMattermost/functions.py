@@ -151,7 +151,7 @@ def add_KP(message_id, user_db_id):
                   'F4503': 1,
                   'F4888SRC': src,
                   'F4888DEST': dest, }
-        sql = f"INSERT INTO T209 ({', '.join(values.keys())}) VALUES ({', '.join(f"'{value}'" for value in values.values())})"
+        sql = f"""INSERT INTO T209 ({', '.join(values.keys())}) VALUES ({', '.join(f"'{value}'" for value in values.values())})"""
         cur.execute(sql)
         con.commit()
         con.close()
