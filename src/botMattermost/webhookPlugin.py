@@ -38,23 +38,15 @@ class Section:
 
 
 class webhookPlugin(Plugin):
+    # @listen_to("Договор")
+    # async def agreement(self, message: Message):
+
+
     @listen_webhook("underApproval")
     @listen_webhook("couldNotGetInTouch")
     async def Cancel(self, event: WebHookEvent):
         if event.body.get('user_name') in event.context.get("managerNicknames"):
-            if isinstance(event, ActionEvent):
-                self.driver.respond_to_web(
-                    event,
-                    {
-                        "update": {"message": event.context.get("message") + "\n@" + event.body.get(
-                            'user_name') + " ответил " + event.context.get("text"), "props": {}},
-                    },
-                )
-            else:
-                self.driver.create_post(
-                    event.body["channel_id"],
-                    f"Webhook {event.webhook_id} сработал!"
-                )
+            self.driver.respond_to_web(event, {"update": {"message": event.context.get("message") + "\n@" + event.body.get('user_name') + " ответил " + event.context.get("text"), "props": {}}, }, )
         else:
             self.driver.create_post(
                 event.body["channel_id"],
@@ -66,21 +58,7 @@ class webhookPlugin(Plugin):
         if event.body.get('user_name') in event.context.get("managerNicknames"):
             set_value_by_id('T213', 'F4570', 'Аннулирован', event.context.get("doc_id"))
             set_value_by_id('T213', 'F4666', 'NULL', event.context.get("doc_id"))
-            if isinstance(event, ActionEvent):
-                self.driver.respond_to_web(
-                    event,
-                    {
-                        "update": {"message": event.context.get(
-                            "message") + "\n@" + event.body.get(
-                            'user_name') + " ответил " + event.context.get("text"),
-                                   "props": {}},
-                    },
-                )
-            else:
-                self.driver.create_post(
-                    event.body["channel_id"],
-                    f"Webhook {event.webhook_id} сработал!"
-                )
+            self.driver.respond_to_web(event, {"update": {"message": event.context.get("message") + "\n@" + event.body.get('user_name') + " ответил " + event.context.get("text"), "props": {}}, }, )
         else:
             self.driver.create_post(
                 event.body["channel_id"],
@@ -92,21 +70,7 @@ class webhookPlugin(Plugin):
         if event.body.get('user_name') == event.context.get("manager_nickname"):
             set_value_by_id('T209', 'F4491', 'Провал', event.context.get("kp_id"))
             set_value_by_id('T209', 'F4529', 'NULL', event.context.get("kp_id"))
-            if isinstance(event, ActionEvent):
-                self.driver.respond_to_web(
-                    event,
-                    {
-                        "update": {"message": event.context.get(
-                            "message") + "\n@" + event.body.get(
-                            'user_name') + " ответил " + event.context.get("text"),
-                                   "props": {}},
-                    },
-                )
-            else:
-                self.driver.create_post(
-                    event.body["channel_id"],
-                    f"Webhook {event.webhook_id} сработал!"
-                )
+            self.driver.respond_to_web(event, {"update": {"message": event.context.get("message") + "\n@" + event.body.get('user_name') + " ответил " + event.context.get("text"), "props": {}}, }, )
         else:
             self.driver.create_post(
                 event.body["channel_id"],
@@ -745,11 +709,17 @@ class webhookPlugin(Plugin):
             with (firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                       password=config.password, charset=config.charset) as con):
                 cur = con.cursor()
-                sql = f"SELECT ID FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"
+                sql = f"SELECT ID AS contractId FROM T212 WHERE F4644 = '{event.body.get('channel_id')}'"
                 cur.execute(sql)
                 contractId = cur.fetchone()
                 if contractId is not None:
                     contractId = contractId[0]
+                else:
+                    sql = f"SELECT ID AS projectId FROM T323 WHERE F5895 = '{event.body.get('channel_id')}'"
+                    cur.execute(sql)
+                    projectId = cur.fetchone()
+                    if projectId is not None:
+                        projectId = projectId[0]
                 sql = f"SELECT ID, F4932 FROM T3 WHERE F16 = '{directorId}'"
                 cur.execute(sql)
                 directorData = cur.fetchone()
@@ -765,7 +735,8 @@ class webhookPlugin(Plugin):
                 values = {
                     'id': ID, 'F4691': contractId, 'F4695': task, 'F4698': comment, 'F4970': dateStart,
                     'F5569': dateStart, 'F4696': deadline, 'F4693': directorId,  # должно быть ID пользователя
-                    'F4694': executorId, 'F4697': 0, 'F5451': idMessage, 'F5872': 'Новая', 'F5889': plannedTimeCosts}
+                    'F4694': executorId, 'F4697': 0, 'F5451': idMessage, 'F5872': 'Новая', 'F5889': plannedTimeCosts,
+                    'F5900': projectId}
                 sql_values = []
                 for key, value in values.items():
                     if value is None:
