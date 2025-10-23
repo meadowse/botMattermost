@@ -1245,8 +1245,7 @@ def editMessage(replyId, cur):
         case 'Отмененная':
             statusEmoji = ':x:'
     message += f"Статус: {statusEmoji} *{status}* {statusEmoji}\n"
-    if status != 'Отмененная':
-        message += ":large_yellow_circle: *Задача ожидает завершения...*" if done != 1 else f":large_green_circle: *Задача завершена {jsonResult.get('today')}*"
+    message += ":large_yellow_circle: *Задача ожидает завершения...*" if done != 1 else f":large_green_circle: *Задача завершена {jsonResult.get('today')}*"
     return message
 
 def add_LEAD(message_id, user_db_id):
