@@ -4,7 +4,7 @@ import time as time_module
 import json
 import requests
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
-    webhook_host_port
+    webhook_host_port, headers_notify_docs_bot
 
 
 def getChannelId(postId):
@@ -27,7 +27,7 @@ def send_message_to_thread(channel_id, root_id, message, props={}):
         'message': message
     }
     payload.update(props)
-    response = requests.post(url, json=payload, headers=headers)
+    response = requests.post(url, json=payload, headers=headers_notify_docs_bot)
     if response.status_code == 201:
         print('Message sent to thread successfully.')
     else:
