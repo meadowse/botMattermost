@@ -77,8 +77,8 @@ class webhookPlugin(Plugin):
         context = eventBody.get('context')
         User = eventBody.get('user_name')
         if User in context.get("managerNicknames"):
-            self.driver.respond_to_web(event, {"update": {
-                "message": f'{context.get("message")}\n@{User} ответил {context.get("text")}', "props": {}}, }, )
+            self.driver.respond_to_web(event, {"update": {"message": f'@{User} ответил {context.get("text")}',
+                                                          "props": {}}, }, )
         else:
             message = Message(context.get('message'))
             self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать {context.get('text')}")
@@ -91,8 +91,8 @@ class webhookPlugin(Plugin):
         if User in context.get("managerNicknames"):
             set_value_by_id('T213', 'F4570', 'Аннулирован', context.get("docId"))
             set_value_by_id('T213', 'F4666', 'NULL', context.get("docId"))
-            self.driver.respond_to_web(event, {"update": {
-                "message": f'{context.get("message")}\n@{User} ответил {context.get("text")}', "props": {}}, }, )
+            self.driver.respond_to_web(event, {"update": {"message": f'@{User} ответил {context.get("text")}',
+                                                          "props": {}}, }, )
         else:
             message = Message(context.get('message'))
             self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать :x: Аннулировать")
@@ -107,43 +107,41 @@ class webhookPlugin(Plugin):
                 cur.execute(f"SELECT ID AS kpId FROM T209 WHERE F4505 = '{message.reply_id}'")
                 kpId = cur.fetchone()[0]
             props = {
-                "props": {
-                    "attachments": [
-                        {
-                            "actions": [
-                                {
-                                    "id": "underApproval",
-                                    "name": ":memo: На согласовании",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                               f"hooks/underApproval",
-                                        "context": dict(text=":memo: На согласовании", message=message.body,
-                                                        managerNicknames=(managerNickname, ), )
-                                    },
+                "attachments": [
+                    {
+                        "actions": [
+                            {
+                                "id": "underApproval",
+                                "name": ":memo: На согласовании",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                                           f"hooks/underApproval",
+                                    "context": dict(text=":memo: На согласовании", message=message.body,
+                                                    managerNicknames=(managerNickname,), )
                                 },
-                                {
-                                    "id": "couldNotGetInTouch",
-                                    "name": ":shrug: Не удалось связаться",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
-                                               "hooks/couldNotGetInTouch",
-                                        "context": dict(text=":shrug: Не удалось связаться", message=message.body,
-                                                        managerNicknames=(managerNickname, ), )
-                                    },
+                            },
+                            {
+                                "id": "couldNotGetInTouch",
+                                "name": ":shrug: Не удалось связаться",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/"
+                                           "hooks/couldNotGetInTouch",
+                                    "context": dict(text=":shrug: Не удалось связаться", message=message.body,
+                                                    managerNicknames=(managerNickname,), )
                                 },
-                                {
-                                    "id": "failure",
-                                    "name": ":x: Провал",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/failure",
-                                        "context": dict(message=message.body, kpId=kpId,
-                                                        managerNicknames=(managerNickname, ), )
-                                    },
+                            },
+                            {
+                                "id": "failure",
+                                "name": ":x: Провал",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/failure",
+                                    "context": dict(message=message.body, kpId=kpId,
+                                                    managerNicknames=(managerNickname,), )
                                 },
-                            ],
-                        }
-                    ]
-                }
+                            },
+                        ],
+                    }
+                ]
             }
             self.driver.reply_to(message, '', props=props)
         except Exception as error:
@@ -158,11 +156,11 @@ class webhookPlugin(Plugin):
         if User in context.get("managerNicknames"):
             set_value_by_id('T209', 'F4491', 'Провал', context.get("kpId"))
             set_value_by_id('T209', 'F4529', 'NULL', context.get("kpId"))
-            self.driver.respond_to_web(event, {"update": {
-                "message": f'{context.get("message")}\n@{User} ответил {context.get("text")}', "props": {}}, }, )
+            self.driver.respond_to_web(event, {"update": {"message": f'@{User} ответил {context.get("text")}',
+                                                          "props": {}}, }, )
         else:
             message = Message(context.get('message'))
-            self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать :x: Аннулировать")
+            self.driver.reply_to(message, f'@{User} у тебя нет прав нажимать :x: Провал')
 
     @listen_to("Договор")
     async def agreement(self, message: Message):
