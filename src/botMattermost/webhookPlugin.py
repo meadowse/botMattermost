@@ -885,6 +885,7 @@ class webhookPlugin(Plugin):
     #     log.info(f"Веб-хук complete выполнен: {datetime.datetime.now()}")
 
     @listen_to("Статус: :new: \*Новая\* :new:")
+    @listen_to("Статус: \*:new: Новая\* :new:")
     async def newTask(self, message: Message):
             mes_json = {
                 'attachments': [
@@ -914,6 +915,7 @@ class webhookPlugin(Plugin):
             self.driver.reply_to(message, '', props=mes_json)
 
     @listen_to("Статус: :molot: \*В работе\* :molot:")
+    @listen_to("Статус: \*:molot: В работе\* :molot:")
     async def workTask(self, message: Message):
             mes_json = {
                 'attachments': [
@@ -943,6 +945,7 @@ class webhookPlugin(Plugin):
             self.driver.reply_to(message, '', props=mes_json)
 
     @listen_to("Статус: :white_check_mark: \*Выполненная\* :white_check_mark:")
+    @listen_to("Статус: \*:white_check_mark: Выполненная\* :white_check_mark:")
     async def completedTask(self, message: Message):
             mes_json = {
                 'attachments': [
