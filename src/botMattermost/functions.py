@@ -45,7 +45,7 @@ def editMessage(replyId, cur):
     message += f"Задача: :hammer: *{jsonResult.get('task')}*\n"
     message += f"Deadline: :calendar: *{jsonResult.get('deadline')}*\n"
     comment = jsonResult.get('comment')
-    if comment != '':
+    if comment != '' and comment is not None:
         message += f"Комментарий: :speech_balloon: *{comment}*\n"
     plannedTimeCosts = jsonResult.get('plannedTimeCosts')
     if plannedTimeCosts is not None:
