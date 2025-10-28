@@ -1,7 +1,7 @@
 import datetime
 import json
 from mmpy_bot import Plugin, listen_webhook, WebHookEvent, ActionEvent, listen_to, Message
-from functions import set_value_by_id, add_KP, add_LEAD
+from functions import set_value_by_id, add_KP, add_LEAD, editMessage
 import re
 import config
 import requests
