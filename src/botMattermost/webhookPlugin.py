@@ -1117,7 +1117,7 @@ class webhookPlugin(Plugin):
                         else:
                             self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
-                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Выполнено :white_check_mark:\"")
                 else:
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
