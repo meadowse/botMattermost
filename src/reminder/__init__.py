@@ -5,6 +5,7 @@ import json
 import requests
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
     webhook_host_port, headers_notify_docs_bot
+from src.reminder.config import headers_notify_kp_bot
 
 
 def getChannelId(postId):
@@ -19,7 +20,7 @@ def getChannelId(postId):
         return None
 
 
-def send_message_to_thread(channel_id, root_id, message, props={}):
+def send_message_to_thread(channel_id, root_id, message, Headers, props={}):
     url = f'{MATTERMOST_URL}/api/v4/posts'
     payload = {
         'channel_id': channel_id,
@@ -27,7 +28,7 @@ def send_message_to_thread(channel_id, root_id, message, props={}):
         'message': message
     }
     payload.update(props)
-    response = requests.post(url, json=payload, headers=headers_notify_docs_bot)
+    response = requests.post(url, json=payload, headers=Headers)
     if response.status_code == 201:
         print('Message sent to thread successfully.')
     else:
@@ -193,7 +194,7 @@ def send_and_update_kp_reminders():
               manager_nickname, root_id, remind_message)
         try:
             send_message_to_thread(
-                'kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message)
+                'kbcyc66jbtbcubs93h43nf19dy', root_id, remind_message, headers_notify_kp_bot)
             # Обновляем дату напоминания
             set_value_by_id('T209', 'F4529', new_date_remind, kp_id)
         except Exception as ex:
@@ -360,7 +361,7 @@ def send_and_update_docs_reminders():
         if message_id and channel_id:
             try:
                 send_message_to_thread(
-                    channel_id, message_id, remind_message)
+                    channel_id, message_id, remind_message, headers_notify_docs_bot)
                 # Обновляем дату напоминания
                 set_value_by_id('T213', 'F4666', new_date_remind, doc_id)
             except Exception as ex:
@@ -409,7 +410,7 @@ def send_empty_priority_reminders():
         remind_message = f' @{manager_nickname} у Лида № {lead_num} нужно проставить Приоритет'
         # print(f'{lead_num=} {message_id=} {manager_nickname=}')
         send_message_to_thread(
-            'kbcyc66jbtbcubs93h43nf19dy', message_id, remind_message)
+            'kbcyc66jbtbcubs93h43nf19dy', message_id, remind_message, headers_notify_docs_bot)
 
 
 def get_info_about_channels():
