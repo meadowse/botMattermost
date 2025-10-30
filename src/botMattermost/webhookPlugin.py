@@ -29,7 +29,7 @@ class webhookPlugin(Plugin):
                 data = cur.fetchone()
                 if data is not None:
                     docId = data[0]
-                projectManager = data[1]
+                    projectManager = data[1]
             managerNicknames = (managerNickname, projectManager)
             props = {
                 "attachments": [
