@@ -71,7 +71,7 @@ class webhookPlugin(Plugin):
             }
             self.driver.reply_to(message, '', props=props)
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("underApproval")
@@ -149,7 +149,7 @@ class webhookPlugin(Plugin):
             }
             self.driver.reply_to(message, '', props=props)
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("failure")
@@ -224,7 +224,7 @@ class webhookPlugin(Plugin):
                 }
                 self.driver.reply_to(message, f'Прм @{pRM[0]}', props=props)
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f'что-то пошло не так {error}')
 
     @listen_webhook("deniedPRM")
@@ -254,7 +254,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("approvePRM")
@@ -284,7 +284,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("deniedHeadDepartment")
@@ -314,7 +314,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("approveHeadDepartment")
@@ -344,7 +344,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
@@ -397,7 +397,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("approveStatement")
@@ -417,7 +417,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
@@ -468,7 +468,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("toApprove")
@@ -488,7 +488,7 @@ class webhookPlugin(Plugin):
             else:
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
@@ -1035,7 +1035,7 @@ class webhookPlugin(Plugin):
                 else:
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("takeWork")
@@ -1082,7 +1082,7 @@ class webhookPlugin(Plugin):
                 else:
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("done")
@@ -1129,7 +1129,7 @@ class webhookPlugin(Plugin):
                 else:
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("acceptJob")
@@ -1177,7 +1177,7 @@ class webhookPlugin(Plugin):
                 else:
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
     @listen_webhook("getBackWork")
@@ -1224,7 +1224,7 @@ class webhookPlugin(Plugin):
                 else:
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
-            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            log.info(error)
             self.driver.reply_to(message, f"что-то пошло не так: {error}")
 
 
