@@ -27,7 +27,8 @@ class webhookPlugin(Plugin):
                 LEFT JOIN T3 AS projectManager ON T212.F4950 = projectManager.ID
                 WHERE T213.F4928 = '{message.reply_id}'""")
                 data = cur.fetchone()
-                docId = data[0]
+                if data is not None:
+                    docId = data[0]
                 projectManager = data[1]
             managerNicknames = (managerNickname, projectManager)
             props = {
