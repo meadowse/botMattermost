@@ -25,7 +25,7 @@ class webhookPlugin(Plugin):
                 FROM T213
                 LEFT JOIN T212 ON T213.F4573 = T212.ID
                 LEFT JOIN T3 AS projectManager ON T212.F4950 = projectManager.ID
-                WHERE T213.F4928 = '{message.reply_id}'""")
+                WHERE T212.F4644 = '{message.channel_id}'""")
                 data = cur.fetchone()
                 if data is not None:
                     docId = data[0]

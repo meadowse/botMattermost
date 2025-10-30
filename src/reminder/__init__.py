@@ -210,16 +210,25 @@ def get_today_docs_reminders():
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
         cur = con.cursor()  # ID, id вида документа, № документа, сумма документа, тип документа, id Договора, id менеджера, nickname менеджера
-        sql = f""" 
-        SELECT T213.ID, T213.F4567, T216.F4674 AS doc, T213.F4568 AS doc_num, T213.F4571, T213.F4576, T213.F4573,
-               T212.F4844 , MANAGER.F4932 AS manager_nickname, PROJECT_MANAGER.F4932 AS project_manager, T213.F4928 AS message_id, T212.F4644, T213.F4666
+        sql = f"""SELECT T213.ID,
+        T213.F4567,
+        T216.F4674 AS doc,
+        T213.F4568 AS doc_num,
+        T213.F4571,
+        T213.F4576,
+        T213.F4573,
+        T212.F4844,
+        MANAGER.F4932 AS manager_nickname,
+        PROJECT_MANAGER.F4932 AS project_manager,
+        T213.F4928 AS message_id,
+        T212.F4644,
+        T213.F4666
         FROM T213
         LEFT JOIN T216 ON T213.F4567 = T216.ID
         LEFT JOIN T212 ON T213.F4573 = T212.ID
         LEFT JOIN T3 AS MANAGER ON T213.F5021 = MANAGER.ID
         LEFT JOIN T3 AS PROJECT_MANAGER ON T212.F4950 = PROJECT_MANAGER.ID
-        WHERE T213.F4666 = '{today}' AND T213.F4570 IS NULL AND T213.F4567 <> 8
-        """
+        WHERE T213.F4666 = '{today}' AND T213.F4570 IS NULL AND T213.F4567 <> 8"""
         cur.execute(sql)
         result = cur.fetchall()
         return result
