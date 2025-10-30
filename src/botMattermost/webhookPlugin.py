@@ -72,7 +72,7 @@ class webhookPlugin(Plugin):
             self.driver.reply_to(message, '', props=props)
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("underApproval")
     @listen_webhook("couldNotGetInTouch")
@@ -150,7 +150,7 @@ class webhookPlugin(Plugin):
             self.driver.reply_to(message, '', props=props)
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("failure")
     async def failure(self, event: WebHookEvent):
@@ -225,7 +225,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f'Прм @{pRM[0]}', props=props)
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f'что-то пошло не так {error}')
+            self.driver.reply_to(message, f'@b.musaev, что-то пошло не так {error}')
 
     @listen_webhook("deniedPRM")
     async def deniedPRM(self, event: WebHookEvent):
@@ -255,7 +255,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("approvePRM")
     async def approvePRM(self, event: WebHookEvent):
@@ -285,7 +285,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("deniedHeadDepartment")
     async def deniedHeadDepartment(self, event: WebHookEvent):
@@ -315,7 +315,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("approveHeadDepartment")
     async def approveHeadDepartment(self, event: WebHookEvent):
@@ -345,7 +345,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
     async def officialStatements(self, message: Message):
@@ -398,7 +398,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("approveStatement")
     async def approveStatement(self, event: WebHookEvent):
@@ -418,7 +418,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
     async def reconciliationPayments(self, message: Message):
@@ -469,7 +469,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отказать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("toApprove")
     async def toApprove(self, event: WebHookEvent):
@@ -489,7 +489,7 @@ class webhookPlugin(Plugin):
                 self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Согласовать\"")
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_to("[А-Яа-яЁё]*")
     async def addButtons(self, message: Message):
@@ -604,7 +604,7 @@ class webhookPlugin(Plugin):
                     self.driver.respond_to_web(event, {"update": {"message": f"@{User} ответил отказом", "props": {}, }, }, )
                 except Exception as e:
                     log.info("Ошибка при отправке:", e)
-                    self.driver.reply_to(message, f"@{User}, ошибка при отправке: {e}")
+                    self.driver.reply_to(message, f"@b.musaev, @{User}, ошибка при отправке: {e}")
                 finally:
                     server.quit()
 
@@ -863,7 +863,7 @@ class webhookPlugin(Plugin):
                     log.info(f'Failed to send message: {response.status_code}, {response.text}')
                     self.driver.reply_to(msg, f'Failed to send message: {response.status_code}, {response.text}')
         except Exception as ex:
-            self.driver.reply_to(msg, f"Ошибка при создании задачи: {ex}")
+            self.driver.reply_to(msg, f"@b.musaev, Ошибка при создании задачи: {ex}")
 
     # @listen_webhook("complete")
     # async def complete(self, event: WebHookEvent):
@@ -1036,7 +1036,7 @@ class webhookPlugin(Plugin):
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("takeWork")
     async def takeWork(self, event: WebHookEvent):
@@ -1083,7 +1083,7 @@ class webhookPlugin(Plugin):
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("done")
     async def done(self, event: WebHookEvent):
@@ -1130,7 +1130,7 @@ class webhookPlugin(Plugin):
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("acceptJob")
     async def acceptJob(self, event: WebHookEvent):
@@ -1178,7 +1178,7 @@ class webhookPlugin(Plugin):
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("getBackWork")
     async def getBackWork(self, event: WebHookEvent):
@@ -1225,7 +1225,7 @@ class webhookPlugin(Plugin):
                     self.driver.reply_to(message, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
 
 
 def deleteButtons(self, message):
