@@ -169,59 +169,63 @@ class webhookPlugin(Plugin):
     @listen_to("Договор")
     async def agreement(self, message: Message):
         # log.info(json.dumps(message.body, indent=4, sort_keys=True, ensure_ascii=False))
-        if message.sender_name == 'notify_docs_bot':
-            headDepartment = (message.text.split('Рук отдела: @')[1].split()[0], 'a.bukreev', )
-            props = {
-                "attachments": [
-                    {
-                        "actions": [
-                            {
-                                "id": "approveHeadDepartment",
-                                "name": ":white_check_mark: Согласовать",
-                                "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approveHeadDepartment",
-                                    "context": dict(message=message.body, headDepartment=headDepartment, )
+        try:
+            if message.sender_name == 'notify_docs_bot':
+                headDepartment = (message.text.split('Рук отдела: @')[1].split()[0], 'a.bukreev', )
+                props = {
+                    "attachments": [
+                        {
+                            "actions": [
+                                {
+                                    "id": "approveHeadDepartment",
+                                    "name": ":white_check_mark: Согласовать",
+                                    "integration": {
+                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approveHeadDepartment",
+                                        "context": dict(message=message.body, headDepartment=headDepartment, )
+                                    },
                                 },
-                            },
-                            {
-                                "id": "deniedHeadDepartment",
-                                "name": ":x: Отказать",
-                                "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deniedHeadDepartment",
-                                    "context": dict(message=message.body, headDepartment=headDepartment, )
+                                {
+                                    "id": "deniedHeadDepartment",
+                                    "name": ":x: Отказать",
+                                    "integration": {
+                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deniedHeadDepartment",
+                                        "context": dict(message=message.body, headDepartment=headDepartment, )
+                                    },
                                 },
-                            },
-                        ],
-                    }
-                ]
-            }
-            self.driver.reply_to(message, f'Рук отдела @{headDepartment[0]}', props=props)
-            pRM = (message.text.split('ПрМ: @')[1].split()[0], 'a.bukreev', )
-            props = {
-                "attachments": [
-                    {
-                        "actions": [
-                            {
-                                "id": "approvePRM",
-                                "name": ":white_check_mark: Согласовать",
-                                "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approvePRM",
-                                    "context": dict(message=message.body, pRM=pRM, )
+                            ],
+                        }
+                    ]
+                }
+                self.driver.reply_to(message, f'Рук отдела @{headDepartment[0]}', props=props)
+                pRM = (message.text.split('ПрМ: @')[1].split()[0], 'a.bukreev', )
+                props = {
+                    "attachments": [
+                        {
+                            "actions": [
+                                {
+                                    "id": "approvePRM",
+                                    "name": ":white_check_mark: Согласовать",
+                                    "integration": {
+                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/approvePRM",
+                                        "context": dict(message=message.body, pRM=pRM, )
+                                    },
                                 },
-                            },
-                            {
-                                "id": "deniedPRM",
-                                "name": ":x: Отказать",
-                                "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deniedPRM",
-                                    "context": dict(message=message.body, pRM=pRM, )
+                                {
+                                    "id": "deniedPRM",
+                                    "name": ":x: Отказать",
+                                    "integration": {
+                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/deniedPRM",
+                                        "context": dict(message=message.body, pRM=pRM, )
+                                    },
                                 },
-                            },
-                        ],
-                    }
-                ]
-            }
-            self.driver.reply_to(message, f'Прм @{pRM[0]}', props=props)
+                            ],
+                        }
+                    ]
+                }
+                self.driver.reply_to(message, f'Прм @{pRM[0]}', props=props)
+        except Exception as error:
+            log.info(json.dumps(error, indent=4, sort_keys=True, ensure_ascii=False))
+            self.driver.reply_to(message, f'что-то пошло не так {error}')
 
     @listen_webhook("deniedPRM")
     async def deniedPRM(self, event: WebHookEvent):
