@@ -47,7 +47,7 @@ def send_message_to_channel(channel_id, message, file_ids=None, props={}):
     if file_ids:
         payload['file_ids'] = file_ids
 
-    response = requests.post(url, json=payload, headers=headers)
+    response = requests.post(url, json=payload, headers=headers_notify_docs_bot)
 
     if response.status_code == 201:
         print('Message sent successfully.')
