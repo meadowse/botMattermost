@@ -30,6 +30,9 @@ class webhookPlugin(Plugin):
                 if data is not None:
                     docId = data[0]
                     projectManager = data[1]
+                else:
+                    docId = None
+                    projectManager = None
             managerNicknames = (managerNickname, projectManager)
             props = {
                 "attachments": [
