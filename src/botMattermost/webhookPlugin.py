@@ -626,7 +626,7 @@ class webhookPlugin(Plugin):
                 log.info('Message sent successfully.')
                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
             else:
-                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                log.info(f'Failed to send message: {response.text}')
         else:
             self.driver.reply_to(message, f"@{User} у вас нет прав нажимать на кнопки")
 
@@ -865,8 +865,8 @@ class webhookPlugin(Plugin):
                     log.info('Message sent successfully.')
                     log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                 else:
-                    log.info(f'Failed to send message: {response.status_code}, {response.text}')
-                    self.driver.reply_to(msg, f'Failed to send message: {response.status_code}, {response.text}')
+                    log.info(f'Failed to send message: {response.text}')
+                    self.driver.reply_to(msg, f'Failed to send message: {response.text}')
         except Exception as ex:
             self.driver.reply_to(msg, f"@b.musaev, Ошибка при создании задачи: {ex}")
 
@@ -1030,9 +1030,9 @@ class webhookPlugin(Plugin):
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                                 deleteButtons(self, message)
                             else:
-                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                log.info(f'Failed to send message: {response.text}')
                                 self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                                                     f'Failed to send message: {response.text}')
                         else:
                             self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
@@ -1079,9 +1079,9 @@ class webhookPlugin(Plugin):
                                 deleteButtons(self, message)
                                 deleteButtons(self, messageEvent)
                             else:
-                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                log.info(f'Failed to send message: {response.text}')
                                 self.driver.reply_to(messageEvent,
-                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                                                     f'Failed to send message: {response.text}')
                         else:
                             self.driver.reply_to(messageEvent, f'Не подходящий статус у задачи {status}')
                     else:
@@ -1126,9 +1126,9 @@ class webhookPlugin(Plugin):
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                                 deleteButtons(self, message)
                             else:
-                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                log.info(f'Failed to send message: {response.text}')
                                 self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                                                     f'Failed to send message: {response.text}')
                         else:
                             self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
@@ -1174,9 +1174,9 @@ class webhookPlugin(Plugin):
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                                 deleteButtons(self, message)
                             else:
-                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                log.info(f'Failed to send message: {response.text}')
                                 self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                                                     f'Failed to send message: {response.text}')
                         else:
                             self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
@@ -1221,9 +1221,9 @@ class webhookPlugin(Plugin):
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                                 deleteButtons(self, message)
                             else:
-                                log.info(f'Failed to send message: {response.status_code}, {response.text}')
+                                log.info(f'Failed to send message: {response.text}')
                                 self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                                                     f'Failed to send message: {response.text}')
                         else:
                             self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
                     else:
@@ -1237,7 +1237,7 @@ class webhookPlugin(Plugin):
 
 def deleteButtons(self, message):
     response = requests.get(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts/{message.reply_id}/thread",
-                            headers=config.headers_notify_tasks_bot)
+                            headers=config.headers_oko)
     if response.status_code == 200:
         log.info('Message sent successfully.')
         responseJson = response.json()
@@ -1256,10 +1256,10 @@ def deleteButtons(self, message):
                     log.info(
                         json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                 else:
-                    log.info(f'Failed to update message: {response.status_code}, {response.text}')
+                    log.info(f'Failed to update message: {response.text}')
                     self.driver.reply_to(message,
-                                         f'Failed to update message: {response.status_code}, {response.text}')
+                                         f'Failed to update message: {response.text}')
     else:
-        log.info(f'Failed get data message: {response.status_code}, {response.text}')
+        log.info(f'Failed get data message: {response.text}')
         self.driver.reply_to(message,
-                             f'Failed get data message: {response.status_code}, {response.text}')
+                             f'Failed get data message: {response.text}')
