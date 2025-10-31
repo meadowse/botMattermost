@@ -811,6 +811,7 @@ class webhookPlugin(Plugin):
                 contractId = cur.fetchone()
                 if contractId is not None:
                     contractId = contractId[0]
+                    projectId = None
                 else:
                     sql = f"SELECT ID AS projectId FROM T323 WHERE F5895 = '{event.body.get('channel_id')}'"
                     cur.execute(sql)
