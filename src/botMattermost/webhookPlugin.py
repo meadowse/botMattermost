@@ -1048,6 +1048,7 @@ class webhookPlugin(Plugin):
             Data = event.body
             context = Data.get('context')
             message = Message(context)
+            log.info(message.body)
             messageEvent = Message({'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
         # try:
             User = Data.get('user_name')
