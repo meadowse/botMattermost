@@ -109,7 +109,11 @@ class webhookPlugin(Plugin):
                                      password=config.password, charset=config.charset) as con:
                 cur = con.cursor()
                 cur.execute(f"SELECT ID AS kpId FROM T209 WHERE F4505 = '{message.reply_id}'")
-                kpId = cur.fetchone()[0]
+                data = cur.fetchall()
+                if data is not None:
+                    kpId = data[0]
+                else:
+                    kpId = None
             props = {
                 "attachments": [
                     {

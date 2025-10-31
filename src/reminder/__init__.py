@@ -3,8 +3,6 @@ from datetime import timedelta, datetime, date
 import time as time_module
 import json
 import requests
-from firebirdsql.fberrmsgs import messages
-
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
     webhook_host_port, headers_notify_docs_bot, headers_notify_kp_bot
 
