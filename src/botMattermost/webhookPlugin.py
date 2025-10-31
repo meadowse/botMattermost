@@ -1078,16 +1078,16 @@ class webhookPlugin(Plugin):
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
                                 self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}', context.get('direct'))
+                                                     f'Failed to send message: {response.status_code}, {response.text}', direct=context.get('direct'))
                         else:
-                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}', context.get('direct'))
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}', direct=context.get('direct'))
                     else:
-                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Взять в работу :molot:\"", context.get('direct'))
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Взять в работу :molot:\"", direct=context.get('direct'))
                 else:
-                    self.driver.reply_to(message, 'В базе не сохранён messageId', context.get('direct'))
+                    self.driver.reply_to(message, 'В базе не сохранён messageId', direct=context.get('direct'))
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}", context.get('direct'))
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}", direct=context.get('direct'))
 
     @listen_webhook("done")
     async def done(self, event: WebHookEvent):
