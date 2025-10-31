@@ -1048,7 +1048,8 @@ class webhookPlugin(Plugin):
         Data = event.body
         context = Data.get('context')
         message = Message(context)
-        messageEvent = Message({'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
+        messageEvent = Message(
+            {'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
         try:
             User = Data.get('user_name')
             with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
@@ -1097,8 +1098,10 @@ class webhookPlugin(Plugin):
         Data = event.body
         context = Data.get('context')
         message = Message(context)
+        messageEvent = Message(
+            {'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
         try:
-            User = event.body.get('user_name')
+            User = Data.get('user_name')
             with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                      password=config.password, charset=config.charset) as con:
                 cur = con.cursor()
@@ -1116,7 +1119,7 @@ class webhookPlugin(Plugin):
                                 f"UPDATE T218 SET F5872 = 'Выполненная', F4697 = 0 WHERE F5451 = '{message.reply_id}'")
                             con.commit()
                             textMessage = editMessage(message.reply_id, cur)
-                            data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
+                            data = {'channel_id': message.channel_id, 'message': textMessage,
                                     'root_id': message.reply_id}
                             response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
                                                      json=data,
@@ -1125,19 +1128,20 @@ class webhookPlugin(Plugin):
                                 log.info('Message sent successfully.')
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                                 deleteButtons(self, message)
+                                deleteButtons(self, messageEvent)
                             else:
                                 log.info(f'Failed to send message: {response.text}')
-                                self.driver.reply_to(message,
+                                self.driver.reply_to(messageEvent,
                                                      f'Failed to send message: {response.text}')
                         else:
-                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
+                            self.driver.reply_to(messageEvent, f'Не подходящий статус у задачи {status}')
                     else:
-                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Выполнено :white_check_mark:\"")
+                        self.driver.reply_to(messageEvent, f"@{User} у тебя нет прав нажимать \"Выполнено :white_check_mark:\"")
                 else:
-                    self.driver.reply_to(message, 'В базе не сохранён messageId')
+                    self.driver.reply_to(messageEvent, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
+            self.driver.reply_to(messageEvent, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("acceptJob")
     async def acceptJob(self, event: WebHookEvent):
