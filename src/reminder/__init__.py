@@ -658,8 +658,7 @@ def send_task_reminders():
                                         "name": "Взять в работу :molot:",
                                         "integration": {
                                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
-                                            "context": {'data': {'channel_type': '',
-                                                                 'post': {'user_id': employee_id, 'root_id': message_id,
+                                            "context": {'data': {'post': {'user_id': employee_id, 'root_id': message_id,
                                                                           'channel_id': channel_id}}},
                                         }
                                     }

@@ -1045,12 +1045,12 @@ class webhookPlugin(Plugin):
 
     @listen_webhook("takeWork")
     async def takeWork(self, event: WebHookEvent):
-        Data = event.body
-        context = Data.get('context')
-        message = Message(context)
-        messageEvent = Message({'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
-        try:
-            User = event.body.get('user_name')
+            Data = event.body
+            context = Data.get('context')
+            message = Message(context)
+            messageEvent = Message({'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
+        # try:
+            User = Data.get('user_name')
             with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
                                      password=config.password, charset=config.charset) as con:
                 cur = con.cursor()
@@ -1088,9 +1088,9 @@ class webhookPlugin(Plugin):
                         self.driver.reply_to(messageEvent, f"@{User} у тебя нет прав нажимать \"Взять в работу :molot:\"")
                 else:
                     self.driver.reply_to(messageEvent, 'В базе не сохранён messageId')
-        except Exception as error:
-            log.info(error)
-            self.driver.reply_to(messageEvent, f"@b.musaev, что-то пошло не так: {error}")
+        # except Exception as error:
+        #     log.info(error)
+        #     self.driver.reply_to(messageEvent, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("done")
     async def done(self, event: WebHookEvent):
