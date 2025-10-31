@@ -1048,6 +1048,7 @@ class webhookPlugin(Plugin):
         Data = event.body
         context = Data.get('context')
         message = Message(context.get('message'))
+        messageEvent = Message({'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
         try:
             User = event.body.get('user_name')
             with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
@@ -1076,19 +1077,20 @@ class webhookPlugin(Plugin):
                                 log.info('Message sent successfully.')
                                 log.info(json.dumps(response.json(), indent=4, sort_keys=True, ensure_ascii=False))
                                 deleteButtons(self, message)
+                                deleteButtons(self, messageEvent)
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
-                                self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}', direct=context.get('direct'))
+                                self.driver.reply_to(messageEvent,
+                                                     f'Failed to send message: {response.status_code}, {response.text}')
                         else:
-                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}', direct=context.get('direct'))
+                            self.driver.reply_to(messageEvent, f'Не подходящий статус у задачи {status}')
                     else:
-                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Взять в работу :molot:\"", direct=context.get('direct'))
+                        self.driver.reply_to(messageEvent, f"@{User} у тебя нет прав нажимать \"Взять в работу :molot:\"")
                 else:
-                    self.driver.reply_to(message, 'В базе не сохранён messageId', direct=context.get('direct'))
+                    self.driver.reply_to(messageEvent, 'В базе не сохранён messageId')
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}", direct=context.get('direct'))
+            self.driver.reply_to(messageEvent, f"@b.musaev, что-то пошло не так: {error}")
 
     @listen_webhook("done")
     async def done(self, event: WebHookEvent):
