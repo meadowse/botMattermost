@@ -646,29 +646,52 @@ def send_task_reminders():
             message += f'адрес в договоре: {dog_address}'
         if message_id is not None:
             message += f', [обсуждение задачи](https://mm-mpk.ru/mosproektkompleks/pl/{message_id})'
-        if status == 'Новая':
-            props = {
-                'props': {
-                    'attachments': [
-                        {
-                            "actions": [
-                                {
-                                    "id": "takeWorkDirect",
-                                    "name": "Взять в работу :molot:",
-                                    "integration": {
-                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
-                                        "context": {'message': {'data': {'channel_type': '', 'post': {
-                                            'user_id': employee_id, 'root_id': message_id, 'channel_id': channel_id}}},
-                                                    'direct': True},
+        match status:
+            case 'Новая':
+                props = {
+                    'props': {
+                        'attachments': [
+                            {
+                                "actions": [
+                                    {
+                                        "id": "takeWork",
+                                        "name": "Взять в работу :molot:",
+                                        "integration": {
+                                            "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
+                                            "context": {'data': {'channel_type': '',
+                                                                 'post': {'user_id': employee_id, 'root_id': message_id,
+                                                                          'channel_id': channel_id}}},
+                                        }
                                     }
-                                }
-                            ]
-                        }
-                    ]
+                                ]
+                            }
+                        ]
+                    }
                 }
-            }
-        else:
-            props = {}
+            case 'В работе':
+                props = {
+                    'props': {
+                        'attachments': [
+                            {
+                                "actions": [
+                                    {
+                                        "id": "takeWorkDirect",
+                                        "name": "Взять в работу :molot:",
+                                        "integration": {
+                                            "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
+                                            "context": {'message': {'data': {'channel_type': '', 'post': {
+                                                'user_id': employee_id, 'root_id': message_id,
+                                                'channel_id': channel_id}}},
+                                                        'direct': True},
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            case _:
+                props = {}
         send_message_to_oko(oko_channel_id, message, props=props)
 
 

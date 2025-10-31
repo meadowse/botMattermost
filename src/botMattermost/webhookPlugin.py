@@ -909,7 +909,7 @@ class webhookPlugin(Plugin):
                                 "name": "Взять в работу :molot:",
                                 "integration": {
                                     "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
-                                    "context": {'message': message.body, 'direct': False},
+                                    "context": message.body,
                                 }
                             },
                             {
@@ -1047,7 +1047,7 @@ class webhookPlugin(Plugin):
     async def takeWork(self, event: WebHookEvent):
         Data = event.body
         context = Data.get('context')
-        message = Message(context.get('message'))
+        message = Message(context)
         messageEvent = Message({'data': {'post': {'root_id': Data.get('post_id'), 'channel_id': Data.get('channel_id')}}})
         try:
             User = event.body.get('user_name')
