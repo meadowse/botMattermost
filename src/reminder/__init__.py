@@ -648,22 +648,27 @@ def send_task_reminders():
             message += f', [обсуждение задачи](https://mm-mpk.ru/mosproektkompleks/pl/{message_id})'
         if status == 'Новая':
             props = {
-                'attachments': [
-                    {
-                        "actions": [
-                            {
-                                "id": "takeWorkDirect",
-                                "name": "Взять в работу :molot:",
-                                "integration": {
-                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
-                                    "context": {'message': {'data': {'channel_type': '', 'post': {'user_id': employee_id, 'root_id': message_id}}},
-                                                'direct': True},
+                'props': {
+                    'attachments': [
+                        {
+                            "actions": [
+                                {
+                                    "id": "takeWorkDirect",
+                                    "name": "Взять в работу :molot:",
+                                    "integration": {
+                                        "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
+                                        "context": {'message': {'data': {'channel_type': '', 'post': {
+                                            'user_id': employee_id, 'root_id': message_id, 'channel_id': channel_id}}},
+                                                    'direct': True},
+                                    }
                                 }
-                            }
-                        ]
-                    }
-                ]
+                            ]
+                        }
+                    ]
+                }
             }
+        else:
+            props = {}
         send_message_to_oko(oko_channel_id, message, props=props)
 
 
