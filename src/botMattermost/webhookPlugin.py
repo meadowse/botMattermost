@@ -904,7 +904,7 @@ class webhookPlugin(Plugin):
                                 "name": "Взять в работу :molot:",
                                 "integration": {
                                     "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
-                                    "context": message.body,
+                                    "context": {'message': message.body, 'direct': False},
                                 }
                             },
                             {
@@ -1042,7 +1042,7 @@ class webhookPlugin(Plugin):
     async def takeWork(self, event: WebHookEvent):
         Data = event.body
         context = Data.get('context')
-        message = Message(context)
+        message = Message(context.get('message'))
         try:
             User = event.body.get('user_name')
             with firebirdsql.connect(host=config.host, database=config.database, user=config.user,
@@ -1074,16 +1074,16 @@ class webhookPlugin(Plugin):
                             else:
                                 log.info(f'Failed to send message: {response.status_code}, {response.text}')
                                 self.driver.reply_to(message,
-                                                     f'Failed to send message: {response.status_code}, {response.text}')
+                                                     f'Failed to send message: {response.status_code}, {response.text}', context.get('direct'))
                         else:
-                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}')
+                            self.driver.reply_to(message, f'Не подходящий статус у задачи {status}', context.get('direct'))
                     else:
-                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Отменить :x:\"")
+                        self.driver.reply_to(message, f"@{User} у тебя нет прав нажимать \"Взять в работу :molot:\"", context.get('direct'))
                 else:
-                    self.driver.reply_to(message, 'В базе не сохранён messageId')
+                    self.driver.reply_to(message, 'В базе не сохранён messageId', context.get('direct'))
         except Exception as error:
             log.info(error)
-            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}")
+            self.driver.reply_to(message, f"@b.musaev, что-то пошло не так: {error}", context.get('direct'))
 
     @listen_webhook("done")
     async def done(self, event: WebHookEvent):

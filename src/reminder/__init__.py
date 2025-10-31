@@ -3,6 +3,8 @@ from datetime import timedelta, datetime, date
 import time as time_module
 import json
 import requests
+from firebirdsql.fberrmsgs import messages
+
 from config import MATTERMOST_URL, headers, headers_oko, host, database, user, password, charset, webhook_host_url, \
     webhook_host_port, headers_notify_docs_bot, headers_notify_kp_bot
 
@@ -241,23 +243,21 @@ def get_today_task_reminders():
     with firebirdsql.connect(host=host, database=database, user=user, password=password,
                              charset=charset) as con:
         cur = con.cursor()
-        sql = f""" 
-        SELECT 
-        T218.ID AS ID,
-        T218.F4695 AS TASK, 
-        T3.F16 AS employe_id,
-        T3.F5649 AS oko_channel_id,
-        T212.F4538 AS contract_number,  -- Номер договора
-        T212.F4946 AS contract_address,  -- Адрес договора
-        T218.F4696 AS TASK_DATE, 
-        T212.F4644 AS channel_id,  -- id MM канала
-        T218.F5451 AS message_id, -- id сообщения задачи
-        T3.F4932 AS manager_nickname
-        FROM T218 
-        LEFT JOIN T3 ON T218.F4694 = T3.ID 
+        sql = f"""SELECT T218.ID AS ID,
+        T218.F4695               AS TASK,
+        T3.F16                   AS employe_id,
+        T3.F5649                 AS oko_channel_id,
+        T212.F4538               AS contract_number,  -- Номер договора
+        T212.F4946               AS contract_address,  -- Адрес договора
+        T218.F4696               AS TASK_DATE,
+        T212.F4644               AS channel_id,  -- id MM канала
+        T218.F5451               AS message_id,  -- id сообщения задачи
+        T3.F4932                 AS manager_nickname,
+        T218.F5872               AS status
+        FROM T218
+        LEFT JOIN T3 ON T218.F4694 = T3.ID
         LEFT JOIN T212 ON T218.F4691 = T212.ID  -- Присоединяем таблицу T212 по ID договора
-        WHERE T218.F4970 <= '{today}' AND T218.F4697 = 0
-        """
+        WHERE T218.F4970 <= '{today}' AND T218.F4697 = 0"""
         cur.execute(sql)
         result = cur.fetchall()
         print(f'Что нашли: {result}')
@@ -617,7 +617,7 @@ def send_task_reminders():
     for i in get_today_task_reminders():
         task_id = i[0]
         task = i[1]
-        employe_id = i[2]
+        employee_id = i[2]
         oko_channel_id = i[3]
         dog_num = i[4]
         dog_address = i[5]
@@ -625,8 +625,9 @@ def send_task_reminders():
         channel_id = i[7]
         message_id = i[8]
         executor = i[9]
-        print(
-            f'{task=}, {employe_id=}, {oko_channel_id=}, {dog_num=}, {dog_address=}, {task_date=}, {channel_id=}, {executor=}')
+        status = i[10]
+        print(f"""{task=}, {employee_id=}, {oko_channel_id=}, {dog_num=}, {dog_address=}, {task_date=}, {channel_id=},
+{executor=}""")
         # Проверка на None
         if task_date is None:
             print(f"Задача {task_id} не имеет даты выполнения. Пропускаем.")
@@ -647,30 +648,24 @@ def send_task_reminders():
             message += f'адрес в договоре: {dog_address}'
         if message_id is not None:
             message += f', [обсуждение задачи](https://mm-mpk.ru/mosproektkompleks/pl/{message_id})'
-        props = {
-        #     "props": {
-        #         "attachments": [
-        #             {
-        #                 "actions": [
-        #                     {
-        #                         "id": "complete",
-        #                         "name": ":white_check_mark: Отметить как выполнено",
-        #                         "integration": {
-        #                             "url": f"{webhook_host_url}:{webhook_host_port}/"
-        #                                    "hooks/complete",
-        #                             "context": dict(
-        #                                 message=message,
-        #                                 taskId=task_id,
-        #                                 messageId=message_id,
-        #                                 executor=executor
-        #                             )
-        #                         },
-        #                     }
-        #                 ]
-        #             }
-        #         ]
-        #     }
-        }
+        if status == 'Новая':
+            props = {
+                'attachments': [
+                    {
+                        "actions": [
+                            {
+                                "id": "takeWorkDirect",
+                                "name": "Взять в работу :molot:",
+                                "integration": {
+                                    "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/takeWork",
+                                    "context": {'message': {'data': {'channel_type': '', 'post': {'user_id': employee_id, 'root_id': message_id}}},
+                                                'direct': True},
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
         send_message_to_oko(oko_channel_id, message, props=props)
 
 
