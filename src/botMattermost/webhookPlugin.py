@@ -1067,7 +1067,7 @@ class webhookPlugin(Plugin):
                             con.commit()
                             textMessage = editMessage(message.reply_id, cur)
                             data = {'channel_id': Data.get('channel_id'), 'message': textMessage,
-                                    'root_id': message.reply_id}
+                                    'root_id': Data.get('post_id')}
                             response = requests.post(f"{config.MATTERMOST_URL}:{config.MATTERMOST_PORT}/api/v4/posts",
                                                      json=data,
                                                      headers=config.headers_notify_tasks_bot)
