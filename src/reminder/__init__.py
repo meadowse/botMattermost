@@ -675,7 +675,7 @@ def send_task_reminders():
                                 "actions": [
                                     {
                                         "id": "done",
-                                        "name": "Взять в работу :molot:",
+                                        "name": "Выполнено :white_check_mark:",
                                         "integration": {
                                             "url": f"{config.webhook_host_url}:{config.webhook_host_port}/hooks/done",
                                             "context": {'data': {'post': {'user_id': employee_id, 'root_id': message_id,
